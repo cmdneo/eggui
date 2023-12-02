@@ -9,8 +9,6 @@
 
 using namespace eggui;
 
-static constexpr int INPUT_POLL_INTERVAL_MS = 20;
-
 void Window::main_loop(int width, int height)
 {
 	// We draw frames only when something changes.
@@ -20,8 +18,10 @@ void Window::main_loop(int width, int height)
 
 	SetTraceLogLevel(LOG_WARNING);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
+	SetExitKey(KEY_NULL); // Do not exit on ESC
+	EnableEventWaiting(); // Set sleep till a new event arrives
+
 	InitWindow(width, height, title);
-	SetExitKey(KEY_NULL);
 
 	root_container->set_size(width, height);
 
@@ -29,15 +29,13 @@ void Window::main_loop(int width, int height)
 		update();
 
 		// Only draw if something changes, otherwise wait and manually poll for events.
-		if (needs_redraw) {
+		if (needs_redraw)
 			draw();
-		} else {
-			WaitTime(INPUT_POLL_INTERVAL_MS / 1000.);
+		else
 			PollInputEvents();
-		}
 
-		// This needs to be placed after draw to work, because inputs are
-		// polled after EndDrawing, or we manually poll them.
+		// This needs to be placed after draw to work properly, because inputs
+		// are polled after EndDrawing, or we manually poll them.
 		if (WindowShouldClose() && close_action())
 			break;
 	}
