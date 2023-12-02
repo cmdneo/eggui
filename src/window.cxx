@@ -9,7 +9,7 @@
 
 using namespace eggui;
 
-static constexpr int INPUT_POLL_INTERVAL_MS = 25;
+static constexpr int INPUT_POLL_INTERVAL_MS = 20;
 
 void Window::main_loop(int width, int height)
 {
@@ -26,12 +26,6 @@ void Window::main_loop(int width, int height)
 	root_container->set_size(width, height);
 
 	while (1) {
-		// TODO make resize propogate
-		if (IsWindowResized()) {
-			needs_redraw = true;
-			root_container->set_size(GetScreenWidth(), GetScreenHeight());
-		}
-
 		update();
 
 		// Only draw if something changes, otherwise wait and manually poll for events.
@@ -63,6 +57,12 @@ static Point vec2_to_point(Vector2 v) { return Point(v.x, v.y); }
 
 void Window::update()
 {
+	// TODO make resize propogate
+	if (IsWindowResized()) {
+		needs_redraw = true;
+		root_container->set_size(GetScreenWidth(), GetScreenHeight());
+	}
+
 	Point mpos = vec2_to_point(GetMousePosition());
 	Widget *hovered = root_container.get();
 
