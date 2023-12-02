@@ -1,5 +1,3 @@
-#include <cassert>
-
 #include "raylib/raylib.h"
 
 #include "theme.hxx"
@@ -11,8 +9,15 @@
 
 using namespace eggui;
 
+static constexpr int INPUT_POLL_INTERVAL_MS = 25;
+
 void Window::main_loop(int width, int height)
 {
+	// We draw frames only when something changes.
+	// A change is defined as:
+	//     A widget acknowledges responding to an event we sent to it.
+	//     State of the window changes.
+
 	SetTraceLogLevel(LOG_WARNING);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
 	InitWindow(width, height, title);
@@ -22,13 +27,23 @@ void Window::main_loop(int width, int height)
 
 	while (1) {
 		// TODO make resize propogate
-		if (IsWindowResized())
+		if (IsWindowResized()) {
+			needs_redraw = true;
 			root_container->set_size(GetScreenWidth(), GetScreenHeight());
+		}
 
 		update();
-		draw();
 
-		// This needs to be placed after draw(EndDrawing) to work.
+		// Only draw if something changes, otherwise wait and manually poll for events.
+		if (needs_redraw) {
+			draw();
+		} else {
+			WaitTime(INPUT_POLL_INTERVAL_MS / 1000.);
+			PollInputEvents();
+		}
+
+		// This needs to be placed after draw to work, because inputs are
+		// polled after EndDrawing, or we manually poll them.
 		if (WindowShouldClose() && close_action())
 			break;
 	}
@@ -95,23 +110,27 @@ void Window::update()
 		return;
 	}
 
-	// Updates the currently hovered on object, only if no object is being
-	// clicked on(see code above).
+	// If a new widget(or none) is being hovered over then notify the
+	// older widget that it is no longer being hovered over.
 	if (hovering_over && hovering_over != hovered)
 		notify(hovering_over, EventType::MouseOut);
-	hovering_over = hovered;
 
-	if (!hovered)
+	if (!hovered) {
+		hovering_over = nullptr;
 		return;
+	}
 
-	//
+	// Notify that the widget has been pressed by left mouse.
 	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 		mouse_down_over = hovered;
 		notify(hovered, EventType::MousePressed);
-	} else {
-		notify(hovered, EventType::MouseIn);
 	}
+	// Notify that the widget is being hovered over only if we were not
+	// previously hovering over the same widget.
+	if (hovering_over != hovered)
+		notify(hovered, EventType::MouseIn);
 
+	hovering_over = hovered;
 	return;
 }
 
@@ -123,10 +142,8 @@ void Window::draw()
 	ClearBackground(BACKGROUND_COLOR);
 
 	root_container->draw();
-	if (debug_borders_enabled) {
+	if (debug_borders_enabled)
 		root_container->draw_debug();
-		DrawFPS(5, 5);
-	}
 
 	EndDrawing();
 }
