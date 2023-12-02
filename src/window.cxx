@@ -68,7 +68,7 @@ void Window::update()
 
 	// Find the innermost widget over which the mouse is, without it if
 	// we hover over anything contained in a container, we will always get
-	// the container instead of the actual object we are hovering over.
+	// the container instead of the actual widget we are hovering over.
 	while (1) {
 		Widget *newer = nullptr;
 		for (auto &c : hovered->children) {
@@ -84,14 +84,14 @@ void Window::update()
 	}
 
 	// Notifes the object of the event.
-	auto notify = [this](Widget *w, EventType type, Point pd = Point()) {
+	auto notify = [this, mpos](Widget *w, EventType type, Point pd = Point()) {
 		auto ev = Event(type);
-		ev.position = pd;
+		ev.cursor = mpos;
+		ev.shared_pt_ = pd;
 		needs_redraw = w->notify(ev) || needs_redraw;
 	};
 
 	if (mouse_down_over) {
-
 		if (!IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
 			auto delta = vec2_to_point(GetMouseDelta());
 			if (delta.x != 0 || delta.y != 0)
@@ -129,6 +129,8 @@ void Window::update()
 	// previously hovering over the same widget.
 	if (hovering_over != hovered)
 		notify(hovered, EventType::MouseIn);
+
+	// TODO Use Scroll event for the Scrollable widget
 
 	hovering_over = hovered;
 	return;

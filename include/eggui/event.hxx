@@ -28,10 +28,13 @@ struct Event {
 
 	EventType type;
 
-	// Event data, C++ supports anonymous unions.
+	// --- Event data ---
+	// Absolute cursor position
+	Point cursor;
+	// We use a union because events using it are exclusive.
 	union {
+		Point shared_pt_;
 		Point delta;
-		Point position;
 		Point scroll;
 		int key;
 	};
