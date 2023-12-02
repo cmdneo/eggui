@@ -15,5 +15,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 add_library(eggui src/window.cxx src/widget.cxx src/container.cxx)
-add_executable(main src/main.cxx)
-target_link_libraries(main eggui raylib m)
+
+# Add examples
+add_executable(test_main examples/some_test.cxx)
+target_link_libraries(test_main eggui raylib m)

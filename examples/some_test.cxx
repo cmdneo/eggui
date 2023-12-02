@@ -10,11 +10,8 @@
 
 #include "raylib/raylib.h"
 
-#include "theme.hxx"
 #include "event.hxx"
-#include "widget.hxx"
-#include "container.hxx"
-#include "window.hxx"
+#include "eggui.hxx"
 
 using namespace eggui;
 
@@ -39,7 +36,7 @@ public:
 
 		DrawRectangleRec(rect, color);
 		if (is_hovering)
-			DrawRectangleLinesEx(rect, 5, BORDER_ACTIVE_COLOR);
+			DrawRectangleLinesEx(rect, 5, BLUE);
 	}
 
 	bool notify(Event ev) override
@@ -97,7 +94,7 @@ int main()
 		Anchor::BottomRight, make_unique<ColorBlock>(80, 40, RED)
 	);
 	pane_right->add_widget(
-		Anchor::TopLeft, make_unique<ColorBlock>(60, 40, BORDER_COLOR)
+		Anchor::TopLeft, make_unique<ColorBlock>(60, 40, GRAY)
 	);
 	pane_right->add_widget(
 		Anchor::BottomLeft, make_unique<ColorBlock>(60, 40, PURPLE)
