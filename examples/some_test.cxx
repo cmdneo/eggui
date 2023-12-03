@@ -17,11 +17,11 @@ using namespace eggui;
 
 using std::make_unique;
 
-class ColorBlock : public Widget
+class ColorBlock : public InteractiveWidget
 {
 public:
 	ColorBlock(int width, int height, Color col)
-		: Widget(width, height)
+		: InteractiveWidget(width, height)
 		, color(col)
 	{
 	}
@@ -29,10 +29,10 @@ public:
 	void draw() override
 	{
 		Rectangle rect{};
-		rect.x = position.x;
-		rect.y = position.y;
-		rect.width = box_size.x;
-		rect.height = box_size.y;
+		rect.x = get_position().x;
+		rect.y = get_position().y;
+		rect.width = get_size().x;
+		rect.height = get_size().y;
 
 		DrawRectangleRec(rect, color);
 		if (is_hovering)
@@ -50,21 +50,26 @@ public:
 			break;
 
 		case EventType::MousePressed:
-			saved_pos = position;
+			saved_pos = get_position();
 			break;
 		case EventType::MouseReleased:
-			position = saved_pos;
+			set_position(saved_pos);
 			break;
 
 		case EventType::MouseDrag:
-			position += ev.delta;
+			set_position(get_position() + ev.delta);
 			break;
 
 		case EventType::MouseClick:
 			// Ignore click if was dragged to a different position
-			if (saved_pos != position)
+			if (saved_pos != get_position())
 				return false;
-			println("Clicked ID[{}]", uintptr_t(this) % 1024);
+			{
+				auto pos = get_position();
+				println(
+					"Clicked ID[{}] {} {}", uintptr_t(this) % 1024, pos.x, pos.y
+				);
+			}
 			break;
 
 		default:
@@ -88,25 +93,17 @@ int main()
 	auto pane_right = make_unique<VerticalContainer>();
 
 	pane_left->add_widget(
-		Anchor::TopRight, make_unique<ColorBlock>(40, 100, PINK)
+		Anchor::BottomRight, make_unique<ColorBlock>(100, 100, PINK)
 	);
 	pane_right->add_widget(
-		Anchor::BottomRight, make_unique<ColorBlock>(80, 40, RED)
+		Anchor::BottomLeft, make_unique<ColorBlock>(100, 100, RED)
 	);
 	pane_right->add_widget(
-		Anchor::TopLeft, make_unique<ColorBlock>(60, 40, GRAY)
+		Anchor::TopLeft, make_unique<ColorBlock>(50, 100, GRAY)
 	);
-	pane_right->add_widget(
-		Anchor::BottomLeft, make_unique<ColorBlock>(60, 40, PURPLE)
-	);
-
-	pane_left->set_size(200, 200);
-	pane_right->set_size(150, 300);
 
 	root->add_widget(Anchor::TopLeft, std::move(pane_left));
 	root->add_widget(Anchor::BottomRight, std::move(pane_right));
-
-	root->set_size(GetScreenWidth(), GetScreenHeight());
 
 	auto window = Window(std::move(root));
 	window.set_title("Event demo...!");

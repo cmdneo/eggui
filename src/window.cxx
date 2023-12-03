@@ -18,24 +18,24 @@ void Window::main_loop(int width, int height)
 
 	SetTraceLogLevel(LOG_WARNING);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
-	SetExitKey(KEY_NULL); // Do not exit on ESC
-	EnableEventWaiting(); // Set sleep till a new event arrives
-
 	InitWindow(width, height, title);
 
+	auto min_size = root_container->calc_min_size();
 	root_container->set_size(width, height);
+
+	EnableEventWaiting(); // Set sleep till a new event arrives
+	SetExitKey(KEY_NULL); // Do not exit on ESC
+	SetWindowMinSize(min_size.x, min_size.y);
 
 	while (1) {
 		update();
 
-		// Only draw if something changes, otherwise wait and manually poll for events.
 		if (needs_redraw)
 			draw();
 		else
 			PollInputEvents();
 
-		// This needs to be placed after draw to work properly, because inputs
-		// are polled after EndDrawing, or we manually poll them.
+		// This needs to be placed after we poll for events to work properly.
 		if (WindowShouldClose() && close_action())
 			break;
 	}
@@ -43,52 +43,32 @@ void Window::main_loop(int width, int height)
 	CloseWindow();
 }
 
-static bool is_point_in_box(Point pt, Point box_pos, Point box_size)
-{
-	Point start = box_pos;
-	Point end = box_pos + box_size;
-
-	return pt.x >= start.x && pt.x < end.x && pt.y >= start.y && pt.y < end.y;
-}
-
 static Point vec2_to_point(Vector2 v) { return Point(v.x, v.y); }
 
 void Window::update()
 {
-	// TODO make resize propogate
 	if (IsWindowResized()) {
 		needs_redraw = true;
 		root_container->set_size(GetScreenWidth(), GetScreenHeight());
+		return;
 	}
 
 	Point mpos = vec2_to_point(GetMousePosition());
-	Widget *hovered = root_container.get();
+	Widget *hovered = root_container->get_active_widget_at(mpos);
 
-	// Find the innermost widget over which the mouse is, without it if
-	// we hover over anything contained in a container, we will always get
-	// the container instead of the actual widget we are hovering over.
-	while (1) {
-		Widget *newer = nullptr;
-		for (auto &c : hovered->children) {
-			if (is_point_in_box(mpos, c->get_position(), c->get_size())) {
-				newer = c.get();
-				break;
-			}
-		}
-
-		if (!newer)
-			break;
-		hovered = newer;
-	}
-
-	// Notifes the object of the event.
+	// Sends event and records and returns the widget's response to the event.
 	auto notify = [this, mpos](Widget *w, EventType type, Point pd = Point()) {
 		auto ev = Event(type);
 		ev.cursor = mpos;
 		ev.shared_pt_ = pd;
-		needs_redraw = w->notify(ev) || needs_redraw;
+		bool resp = w->notify(ev);
+		needs_redraw = resp || needs_redraw;
+		return resp;
 	};
 
+	// Detect if mouse released, clicked or dragged. It can only happen if
+	// mouse button was already pressed over some widget and that widget
+	// responded to the button press.
 	if (mouse_down_over) {
 		if (!IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
 			auto delta = vec2_to_point(GetMouseDelta());
@@ -119,18 +99,20 @@ void Window::update()
 	}
 
 	// Notify that the widget has been pressed by left mouse.
-	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)
+		&& notify(hovered, EventType::MousePressed))
 		mouse_down_over = hovered;
-		notify(hovered, EventType::MousePressed);
-	}
+
 	// Notify that the widget is being hovered over only if we were not
 	// previously hovering over the same widget.
-	if (hovering_over != hovered)
-		notify(hovered, EventType::MouseIn);
+	if (hovering_over != hovered) {
+		if (notify(hovered, EventType::MouseIn))
+			hovering_over = hovered;
+		else
+			hovering_over = nullptr;
+	}
 
 	// TODO Use Scroll event for the Scrollable widget
-
-	hovering_over = hovered;
 	return;
 }
 

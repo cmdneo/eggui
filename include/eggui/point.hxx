@@ -26,12 +26,22 @@ struct Point {
 		return *this;
 	}
 
+	bool is_in_box(Point box_pos, Point box_size)
+	{
+		Point start = box_pos;
+		Point end = start;
+		end += box_size;
+
+		return x >= start.x && x < end.x && y >= start.y && y < end.y;
+	}
+
 	int x = 0;
 	int y = 0;
 };
 
 inline Point operator+(Point l, Point r) { return (l += r); }
 inline Point operator-(Point l, Point r) { return (l -= r); }
+inline Point operator-(Point l) { return Point(-l.x, -l.y); }
 inline bool operator==(Point l, Point r) { return l.x == r.x && l.y == r.y; }
 
 inline Point max_components(Point a, Point b)
