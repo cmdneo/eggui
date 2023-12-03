@@ -22,6 +22,8 @@ public:
 	/// @return
 	virtual void add_widget(Anchor anchor, std::unique_ptr<Widget> w);
 
+	// FIXME Setting position of a container also moves all it all children
+	// together. But sometimes we don't want that so.
 	void set_position(Point new_pos) override
 	{
 		auto delta = new_pos - get_position();
@@ -33,8 +35,10 @@ public:
 
 	void draw() override
 	{
-		for (auto &c : children)
+		for (auto &c : children) {
+			// if (c->is_visible(100, 100))
 			c->draw();
+		}
 	}
 
 	void draw_debug() override;

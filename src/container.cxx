@@ -1,7 +1,6 @@
-#include <cassert>
+#include <cstdlib>
 #include <algorithm>
 #include <memory>
-#include <optional>
 
 #include "widget.hxx"
 #include "container.hxx"
@@ -13,17 +12,19 @@ using namespace eggui;
 enum class FillMode { Column, Row };
 
 /// @brief Puts the box inside a rectangular container.
+///        If the box does not fit then it is an error.
 /// @param free_start Container free start point(inclusive).
 /// @param free_end   Container free end point(excluded).
 /// @param box_size   Box size.
 /// @param corner     Anchor direction, one of the four corners.
 /// @param fill       Fill mode: Column(vertical) or Row(horizontal).
-/// @return Retuns box position if box fits, otherwise nullopt.
+/// @return Box position
 ///
 /// @details Puts the box inside a rectanglular container represented by
-/// `start` and `end` and if the box fits inside it, then updates `start`
-/// and `end` to reflect their new free space.
-std::optional<Point> put_box_in_container(
+/// `start` and `end` and then updates them to reflect the new free space.
+/// In row fill mode only height of the free-area is consumed.
+/// In column fill mode only width of the free-area is consumed.
+Point put_box_in_container(
 	Point &free_start, Point &free_end, Point box_size, Anchor corner,
 	FillMode fill
 )
@@ -67,8 +68,10 @@ std::optional<Point> put_box_in_container(
 	}
 
 	auto space_left = end - start;
-	if (space_left.x < 0 || space_left.y < 0)
-		return std::nullopt;
+	if (space_left.x < 0 || space_left.y < 0) {
+		TraceLog(LOG_FATAL, "%s: Box does not fit.", __func__);
+		abort();
+	}
 
 	// Update only if the box fits
 	free_start = start;
@@ -98,7 +101,14 @@ void Container::add_widget(Anchor corner, std::unique_ptr<Widget> w)
 
 void Container::set_size(int width, int height)
 {
+	// We never keep a container a less than its minimum size
+	// to ensure proper layout of elements, even if those elements lie outside
+	// of the drawing[(0, 0) to screen_size] area.
+	auto min_sz = calc_min_size();
+	width = std::max(min_sz.x, width);
+	height = std::max(min_sz.y, height);
 	Widget::set_size(width, height);
+
 	free_start = get_position();
 	free_end = get_position() + get_size();
 
@@ -114,9 +124,8 @@ void HorizontalContainer::layout_child_widget(Widget &child)
 	auto pos = put_box_in_container(
 		free_start, free_end, size, child.anchor_corner, FillMode::Column
 	);
-	if (pos)
-		child.set_position(*pos);
-	
+	child.set_position(pos);
+
 	// If is a container then propogate resize to it.
 	// And if strechable then fill the entire column.`
 	auto cont = dynamic_cast<Container *>(&child);
@@ -147,8 +156,7 @@ void VerticalContainer::layout_child_widget(Widget &child)
 	auto pos = put_box_in_container(
 		free_start, free_end, size, child.anchor_corner, FillMode::Row
 	);
-	if (pos)
-		child.set_position(*pos);
+	child.set_position(pos);
 
 	// If is a container then propogate resize to it.
 	// And if strechable then fill the entire row.`
