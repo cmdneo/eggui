@@ -6,8 +6,11 @@
 #include "widget.hxx"
 #include "container.hxx"
 #include "window.hxx"
+#include "space_mono.bin.h"
 
 using namespace eggui;
+
+Font EG_MONO_FONT;
 
 void Window::main_loop(int width, int height)
 {
@@ -17,15 +20,30 @@ void Window::main_loop(int width, int height)
 	//     State of the window changes.
 
 	SetTraceLogLevel(LOG_WARNING);
-	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
+	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
 	InitWindow(width, height, title);
 
 	auto min_size = root_container->calc_min_size();
 	root_container->set_size(width, height);
 
+	if (min_size.x <= width && min_size.y <= height) {
+		SetWindowMinSize(min_size.x, min_size.y);
+	} else {
+		TraceLog(
+			LOG_WARNING,
+			"%s: Provided window size(%dx%d) is too small.\n"
+			"Minimum size should be %dx%d for this configuration.",
+			__func__, width, height, min_size.x, min_size.y
+		);
+		SetWindowMinSize(width, height);
+	}
+
 	EnableEventWaiting(); // Set sleep till a new event arrives
 	SetExitKey(KEY_NULL); // Do not exit on ESC
-	SetWindowMinSize(min_size.x, min_size.y);
+	EG_MONO_FONT = LoadFontFromMemory(
+		".ttf", SPACE_MONO_REGULAR_TTF, SPACE_MONO_REGULAR_TTF_LEN,
+		EG_FONT_SIZE, nullptr, 0
+	);
 
 	while (1) {
 		update();
@@ -40,6 +58,7 @@ void Window::main_loop(int width, int height)
 			break;
 	}
 
+	UnloadFont(EG_MONO_FONT);
 	CloseWindow();
 }
 
@@ -56,14 +75,13 @@ void Window::update()
 	Point mpos = vec2_to_point(GetMousePosition());
 	Widget *hovered = root_container->get_active_widget_at(mpos);
 
-	// Sends event and records and returns the widget's response to the event.
+	// Sends event and records the widget's response to the event.
 	auto notify = [this, mpos](Widget *w, EventType type, Point pd = Point()) {
 		auto ev = Event(type);
 		ev.cursor = mpos;
 		ev.shared_pt_ = pd;
 		bool resp = w->notify(ev);
 		needs_redraw = resp || needs_redraw;
-		return resp;
 	};
 
 	// Detect if mouse released, clicked or dragged. It can only happen if
@@ -90,30 +108,28 @@ void Window::update()
 
 	// If a new widget(or none) is being hovered over then notify the
 	// older widget that it is no longer being hovered over.
-	if (hovering_over && hovering_over != hovered)
+	if (hovering_over && hovering_over != hovered) {
 		notify(hovering_over, EventType::MouseOut);
-
-	if (!hovered) {
 		hovering_over = nullptr;
-		return;
 	}
 
-	// Notify that the widget has been pressed by left mouse.
-	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)
-		&& notify(hovered, EventType::MousePressed))
-		mouse_down_over = hovered;
+	if (!hovered)
+		return;
 
 	// Notify that the widget is being hovered over only if we were not
 	// previously hovering over the same widget.
 	if (hovering_over != hovered) {
-		if (notify(hovered, EventType::MouseIn))
-			hovering_over = hovered;
-		else
-			hovering_over = nullptr;
+		notify(hovered, EventType::MouseIn);
+		hovering_over = hovered;
+	}
+
+	// Notify that the widget has been pressed by left mouse.
+	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+		notify(hovered, EventType::MousePressed);
+		mouse_down_over = hovered;
 	}
 
 	// TODO Use Scroll event for the Scrollable widget
-	return;
 }
 
 void Window::draw()
@@ -121,6 +137,7 @@ void Window::draw()
 	needs_redraw = false;
 
 	BeginDrawing();
+
 	ClearBackground(BACKGROUND_COLOR);
 
 	root_container->draw();
