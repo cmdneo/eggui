@@ -6,9 +6,9 @@
 #include "window.hxx"
 #include "widget.hxx"
 #include "container.hxx"
+#include "button.hxx"
 
 // TODO add these when done
-// #include "button.hxx"
 // #include "scrollable.hxx"
 
 #endif
