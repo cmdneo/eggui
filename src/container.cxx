@@ -109,12 +109,15 @@ void Container::set_size(int width, int height)
 	height = std::max(min_sz.y, height);
 	Widget::set_size(width, height);
 
+	// A layout calculation is needed after resize
 	free_start = get_position();
 	free_end = get_position() + get_size();
 
 	for (auto &c : children)
 		layout_child_widget(*c);
 }
+
+// TODO make layout calculation better, that is better filling of space.
 
 void HorizontalContainer::layout_child_widget(Widget &child)
 {
@@ -126,10 +129,10 @@ void HorizontalContainer::layout_child_widget(Widget &child)
 	);
 	child.set_position(pos);
 
-	// If is a container then propogate resize to it.
-	// And if strechable then fill the entire column.`
+	// If it is a container then we need stretch and set its size.
+	// Strech and fill column if smaller.
 	auto cont = dynamic_cast<Container *>(&child);
-	if (cont && cont->is_strechable) {
+	if (cont) {
 		cont->set_ypos(get_position().y);
 		cont->set_size(size.x, std::max(get_size().y, size.y));
 	}
@@ -158,10 +161,10 @@ void VerticalContainer::layout_child_widget(Widget &child)
 	);
 	child.set_position(pos);
 
-	// If is a container then propogate resize to it.
-	// And if strechable then fill the entire row.`
+	// If it is a container then we need stretch and set its size.
+	// Strech and fill row if smaller.
 	auto cont = dynamic_cast<Container *>(&child);
-	if (cont && cont->is_strechable) {
+	if (cont) {
 		cont->set_xpos(get_position().x);
 		cont->set_size(std::max(get_size().x, size.x), size.y);
 	}

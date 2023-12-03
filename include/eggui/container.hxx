@@ -14,21 +14,18 @@ public:
 	{
 	}
 
-	virtual void layout_child_widget(Widget &child) = 0;
-
 	/// @brief Add a widget to the container, no layout calculation is done.
 	/// @param w The widget
 	/// @param anchor Anchor direction
 	/// @return
 	virtual void add_widget(Anchor anchor, std::unique_ptr<Widget> w);
 
-	// FIXME Setting position of a container also moves all it all children
-	// together. But sometimes we don't want that so.
 	void set_position(Point new_pos) override
 	{
 		auto delta = new_pos - get_position();
 		Widget::set_position(new_pos);
 
+		// Moving a container should also move all of its children with it.
 		for (auto &c : children)
 			c->set_position(c->get_position() + delta);
 	}
@@ -54,9 +51,9 @@ public:
 		return nullptr;
 	}
 
-	bool is_strechable = true;
-
 protected:
+	virtual void layout_child_widget(Widget &child) = 0;
+
 	// Keeps track the rectangular area available while the laying out widgets.
 	// Free range is start inclusive, just like left inclusive range but in 2D.
 	Point free_start{};
@@ -67,24 +64,28 @@ protected:
 /// @brief Simple container for laying out widgets.
 /// If the widget is strechable then its height is changed to fill the entire
 /// column in which it is placed.
-class HorizontalContainer : public Container
+class HorizontalContainer final : public Container
 {
 public:
 	using Container::Container;
 
 	Point calc_min_size() override;
+
+protected:
 	void layout_child_widget(Widget &child) override;
 };
 
 /// @brief Simple container for laying out widgets.
 /// If the widget is strechable then its width is changed to fill the entire
 /// row in which it is placed.
-class VerticalContainer : public Container
+class VerticalContainer final : public Container
 {
 public:
 	using Container::Container;
 
 	Point calc_min_size() override;
+
+protected:
 	void layout_child_widget(Widget &child) override;
 };
 
