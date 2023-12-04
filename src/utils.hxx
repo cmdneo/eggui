@@ -24,4 +24,6 @@ inline Rectangle shrink_from_center(Rectangle rect, float x, float y)
 	return rect;
 }
 
+inline eggui::Point vec2_to_point(Vector2 v) { return eggui::Point(v.x, v.y); }
+
 #endif

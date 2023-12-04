@@ -2,6 +2,7 @@
 #define CONTAINER_HXX_INCLUDED
 
 #include "point.hxx"
+#include "event.hxx"
 #include "widget.hxx"
 
 namespace eggui
@@ -30,6 +31,19 @@ public:
 			c->set_position(c->get_position() + delta);
 	}
 
+	Widget *notify(Event ev) override
+	{
+		// Handle mouse events only for now
+		for (auto &c : children) {
+			if (!c->collides_with_point(ev.cursor))
+				continue;
+			if (c->notify(ev))
+				return c.get();
+		}
+
+		return nullptr;
+	}
+
 	void draw() override
 	{
 		for (auto &c : children) {
@@ -41,15 +55,6 @@ public:
 	void draw_debug() override;
 
 	void set_size(int width, int height) override;
-
-	Widget *get_active_widget_at(Point point) override
-	{
-		for (auto &c : children) {
-			if (auto p = c->get_active_widget_at(point))
-				return p;
-		}
-		return nullptr;
-	}
 
 protected:
 	virtual void layout_child_widget(Widget &child) = 0;

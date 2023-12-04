@@ -8,8 +8,9 @@
 
 using namespace eggui;
 
-bool Button::notify(Event ev)
+Widget *Button::notify(Event ev)
 {
+	
 	switch (ev.type) {
 	case EventType::MouseIn:
 		is_hovering = true;
@@ -30,10 +31,10 @@ bool Button::notify(Event ev)
 		break;
 
 	default:
-		return false;
+		return Interactive::notify(ev);
 	}
 
-	return true;
+	return this;
 };
 
 Point margin(5, 5);

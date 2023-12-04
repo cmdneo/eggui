@@ -8,11 +8,11 @@
 
 namespace eggui
 {
-class Button : public InteractiveWidget
+class Button : public Interactive
 {
 public:
 	Button(int w, int h, const char *txt)
-		: InteractiveWidget(w, h)
+		: Interactive(w, h)
 		, label(txt)
 	{
 	}
@@ -25,7 +25,7 @@ public:
 	}
 
 	void draw() override;
-	bool notify(Event ev) override;
+	Widget *notify(Event ev) override;
 
 private:
 	std::function<void(Button &)> click_action = [](auto &) {};

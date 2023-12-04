@@ -14,10 +14,13 @@ enum class EventType {
 	MouseReleased,
 	MouseClick,
 	MouseDrag,
+	MouseMotion,
 	// Keyboard events
 	KeyDown,
 	KeyReleased,
 	KeyPressed,
+	// Events for querying
+	IsInteractive,
 };
 
 struct Event {

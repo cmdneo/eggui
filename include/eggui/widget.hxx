@@ -4,7 +4,6 @@
 #include <vector>
 #include <memory>
 #include <utility>
-#include <typeinfo>
 
 #include "point.hxx"
 #include "event.hxx"
@@ -59,28 +58,28 @@ public:
 		box_size = Point(width, height);
 	}
 
-	/// @brief Notify of an event on it.
-	/// @param event
-	/// @return Returns false if the event is ignored.
-	virtual bool notify(Event) { return false; }
+	/// @brief Handle the event or pass it onto its eligible child(if any).
+	/// @param event Event information
+	/// @return the widget which handeled the event, nullptr if unhandaled.
+	virtual Widget *notify(Event) { return nullptr; }
 
 	/// @brief Calculate the minimum size for the widget
 	/// @return Size
 	virtual Point calc_min_size() { return get_size(); }
+
+	/// @brief Checks if the `cursor` is inside the widget's boundary.
+	/// @param cursor Point
+	/// @return True if `cursor` in inside widget, false otherwise.
+	virtual bool collides_with_point(Point cursor)
+	{
+		return cursor.is_in_box(get_position(), get_size());
+	}
 
 	/// @brief Draw debug boxes around widget boundaries
 	virtual void draw_debug();
 
 	/// @brief Draw the widget
 	virtual void draw() = 0;
-
-	/// @brief Returns the first active widget(itself included) it contains
-	///        whose bounding box collides with `point`.
-	/// @param point Point for position
-	/// @return nullptr if no collision with any active widget it.
-	///
-	/// @note Active widget is a widget to which may respond to events.
-	virtual Widget *get_active_widget_at(Point point) = 0;
 
 	// Additional Helper functions
 	void set_xpos(int x) { set_position(Point(x, get_position().y)); }
@@ -91,17 +90,20 @@ private:
 	Point box_size;
 };
 
-class InteractiveWidget : public Widget
+class Interactive : public Widget
 {
 public:
 	using Widget::Widget;
 
-	Widget *get_active_widget_at(Point point) override
+	Widget *notify(Event ev) override
 	{
-		if (is_disabled)
-			return nullptr;
-		return point.is_in_box(get_position(), get_size()) ? this : nullptr;
+		if (!is_disabled && ev.type == EventType::IsInteractive)
+			return this;
+		return nullptr;
 	}
+
+	void disable() { is_disabled = true; }
+	void enable() { is_disabled = false; }
 
 private:
 	bool is_disabled = false;
