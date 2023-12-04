@@ -48,6 +48,15 @@ inline Point max_components(Point a, Point b)
 {
 	return Point(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y);
 }
+
+inline bool check_box_collision(Point p, Point psize, Point q, Point qsize)
+{
+	// The end point(pos + size) is not included in the rectange formed.
+	return !(
+		p.x + psize.x <= q.x || p.y + psize.y <= q.y || p.x >= q.x + qsize.x
+		|| p.y >= q.y + qsize.y
+	);
+}
 } // namespace eggui
 
 #endif
