@@ -10,18 +10,9 @@
 
 namespace eggui
 {
-enum class Anchor {
-	TopLeft,
-	TopRight,
-	BottomLeft,
-	BottomRight,
-};
-
 class Widget
 {
 public:
-	Anchor anchor_corner;
-
 	Widget(int w, int h)
 		: Widget(0, 0, w, h)
 	{
@@ -39,12 +30,18 @@ public:
 	{
 		// Screen rectange points are: (0, 0) and (win_width-1, win_height-1)
 		// Check if bounding box of the widget collides with that of the screen.
-		return position.x + box_size.x >= 0 && position.y + box_size.y >= 0
-			   && position.x < win_width && position.y < win_height;
+		return check_box_collision(
+			position, box_size, Point(0, 0), Point(win_width, win_height)
+		);
 	}
 
 	Point get_position() const { return position; }
 	Point get_size() const { return box_size; }
+	Widget *get_parent() { return parent; }
+
+	/// @brief Set parent of the widget.
+	/// @param w Parent widget, it is generally a container
+	void set_parent(Widget *w) { parent = w; }
 
 	/// @brief Move the container along with its children
 	/// @param new_pos New position
@@ -86,6 +83,7 @@ public:
 	void set_ypos(int y) { set_position(Point(get_position().x, y)); }
 
 private:
+	Widget *parent;
 	Point position;
 	Point box_size;
 };

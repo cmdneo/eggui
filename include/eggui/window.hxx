@@ -33,7 +33,7 @@ public:
 
 	void set_debug(bool enable) { debug_borders_enabled = enable; }
 
-	void main_loop(int width, int height);
+	void main_loop(int width_hint = -1, int height_hint = -1);
 
 private:
 	/// @brief Update all the widgets by sending events to them.
