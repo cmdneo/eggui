@@ -10,6 +10,17 @@
 
 namespace eggui
 {
+
+enum class FontSize {
+	Tiny,
+	Small,
+	Medium,
+	Large,
+	Huge,
+};
+
+constexpr int FONT_SIZE_COUNT = 5;
+
 class Widget
 {
 public:
@@ -37,7 +48,7 @@ public:
 
 	Point get_position() const { return position; }
 	Point get_size() const { return box_size; }
-	Widget *get_parent() { return parent; }
+	Widget *get_parent() const { return parent; }
 
 	/// @brief Set parent of the widget.
 	/// @param w Parent widget, it is generally a container
@@ -93,18 +104,44 @@ class Interactive : public Widget
 public:
 	using Widget::Widget;
 
+	/// @brief Call and return its value for all the events that are ignored
+	///        by the subclass method which overrides this.
+	/// @param ev Event
+	/// @return The widget which handeled the event.
 	Widget *notify(Event ev) override
 	{
-		if (!is_disabled && ev.type == EventType::IsInteractive)
+		if (!is_disabled() && ev.type == EventType::IsInteractive)
+			was_any_event_handeled = true;
+
+		if (was_any_event_handeled) {
+			was_any_event_handeled = false;
 			return this;
+		}
 		return nullptr;
 	}
 
-	void disable() { is_disabled = true; }
-	void enable() { is_disabled = false; }
+	void disable() { is_disabled_ = true; }
+	void enable() { is_disabled_ = false; }
+	bool is_disabled() const { return is_disabled_; }
+
+protected:
+	/// @brief Manage is-hovering state for an enabled interactive widget.
+	/// @param ev Event, .
+	/// @return Whether any of the events related to it were handled.
+	bool handle_mouse_hover_events(Event ev);
+
+	/// @brief Manage is-pressed state for an enabled interactive widget.
+	/// @param ev Event, .
+	/// @return Whether any of the events related to it were handled.
+	bool handle_mouse_press_events(Event ev);
+
+	// State information for interactive widgets
+	bool is_hovering = false;
+	bool is_pressed = false;
 
 private:
-	bool is_disabled = false;
+	bool is_disabled_ = false;
+	bool was_any_event_handeled = false;
 };
 } // namespace eggui
 

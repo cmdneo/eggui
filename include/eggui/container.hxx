@@ -146,9 +146,7 @@ public:
 private:
 	struct Child {
 		std::unique_ptr<Widget> widget;
-		// Size available to the widget can be larger than its size
-		// This occcurs when the cell(s) it lives in become larger due another
-		// widget in the same column/row having larger size.
+		// Size available to the widget can be larger than its size.
 		Point avail_size;
 		// Top left column and row
 		Point grid_pos;

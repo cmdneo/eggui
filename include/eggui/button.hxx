@@ -19,20 +19,17 @@ public:
 
 	void set_text(const char *txt) { label = txt; }
 
-	void set_click_action(std::function<void(Button &)> callback)
+	void set_on_click(std::function<void(Button &)> callback)
 	{
-		click_action = callback;
+		on_click = callback;
 	}
 
-	void draw() override;
 	Widget *notify(Event ev) override;
+	void draw() override;
 
 private:
-	std::function<void(Button &)> click_action = [](auto &) {};
+	std::function<void(Button &)> on_click = [](auto &) {};
 	const char *label = "";
-
-	bool is_hovering = false;
-	bool is_pressed = false;
 };
 } // namespace eggui
 

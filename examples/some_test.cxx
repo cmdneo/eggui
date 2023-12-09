@@ -11,6 +11,7 @@
 #include "raylib/raylib.h"
 
 #include "event.hxx"
+#include "scrollable.hxx"
 #include "eggui.hxx"
 
 using namespace eggui;
@@ -20,27 +21,26 @@ using std::make_unique;
 int main()
 {
 
-	auto root = make_unique<HorizontalContainer>();
-	auto pane_left = make_unique<VerticalContainer>();
-	auto pane_right = make_unique<VerticalContainer>();
+	auto grid = make_unique<Grid>();
+	grid->set_row_gap(10);
+	grid->set_col_gap(10);
+	grid->add_widget(make_unique<Button>(400, 200, "DBL-DECKER"), 0, 0, 1, 2);
+	auto b = grid->add_widget(make_unique<Button>(200, 70, "SIN-U"), 2, 0);
 
-	pane_left->add_widget(
-		Anchor::BottomRight, make_unique<Button>(100, 60, "Main")
-	);
-	pane_right->add_widget(
-		Anchor::BottomLeft, make_unique<Button>(200, 100, "BigX")
-	);
-	pane_right->add_widget(
-		Anchor::BottomLeft, make_unique<Button>(200, 100, "BigY")
+	grid->add_widget(make_unique<Button>(200, 70, "SIN-L"), 2, 2);
+
+	auto sbar = make_unique<ScrollBar>(20, 400, ScrollBar::Axis::Y);
+	sbar->set_on_scroll([](float) {});
+	grid->add_widget_beside(std::move(sbar), b, Direction::Left, 1, 4);
+
+	grid->add_widget_beside(
+		make_unique<Button>(400, 100, "XPANDER"), b, Direction::BottomRight
 	);
 
-	root->add_widget(Anchor::TopLeft, std::move(pane_left));
-	root->add_widget(Anchor::BottomRight, std::move(pane_right));
-
-	auto window = Window(std::move(root));
+	auto window = Window(std::move(grid));
 	window.set_title("Event demo...!");
 
-	window.main_loop(640, 480);
+	window.main_loop();
 
 	return 0;
 }

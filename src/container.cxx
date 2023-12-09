@@ -221,6 +221,9 @@ Widget *Grid::add_widget_beside(
 	else if (has_bit(stick, Direction::Right))
 		gpos.x -= column_span;
 
+	if (gpos.x < 0 || gpos.y < 0)
+		return nullptr;
+
 	return add_widget(std::move(child), gpos.x, gpos.y, column_span, row_span);
 }
 
