@@ -24,8 +24,8 @@ enum class EventType {
 };
 
 struct Event {
-	Event(EventType ev_type)
-		: type(ev_type)
+	Event(EventType ev_type, Point cursor_ = Point(0, 0))
+		: type(ev_type), cursor(cursor_)
 	{
 	}
 

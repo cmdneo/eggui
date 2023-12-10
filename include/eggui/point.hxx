@@ -12,6 +12,8 @@ struct Point {
 	{
 	}
 
+	int min_coord() const { return x < y ? x : y; }
+
 	Point &operator+=(Point other)
 	{
 		x += other.x;
@@ -26,6 +28,8 @@ struct Point {
 		return *this;
 	}
 
+	int operator[](int i) const { return i == 0 ? x : y; }
+
 	bool is_in_box(Point box_pos, Point box_size)
 	{
 		Point start = box_pos;
@@ -39,10 +43,13 @@ struct Point {
 	int y = 0;
 };
 
+inline bool operator==(Point l, Point r) { return l.x == r.x && l.y == r.y; }
 inline Point operator+(Point l, Point r) { return (l += r); }
 inline Point operator-(Point l, Point r) { return (l -= r); }
 inline Point operator-(Point l) { return Point(-l.x, -l.y); }
-inline bool operator==(Point l, Point r) { return l.x == r.x && l.y == r.y; }
+inline Point operator*(Point p, int n) { return Point(p.x * n, p.y * n); }
+inline Point operator*(int n, Point p) { return p * n; }
+inline Point operator/(Point p, int n) { return Point(p.x / n, p.y / n); }
 
 inline Point max_components(Point a, Point b)
 {
@@ -57,6 +64,16 @@ inline bool check_box_collision(Point p, Point psize, Point q, Point qsize)
 		|| p.y >= q.y + qsize.y
 	);
 }
+
+inline bool
+is_box_inside_box(Point outer, Point outer_size, Point inner, Point inner_size)
+{
+	auto outer_end = outer + outer_size;
+	auto inner_end = inner + inner_size;
+	return inner.x >= outer.x && inner.y >= outer.y
+		   && inner_end.x <= outer_end.x && inner_end.y <= outer_end.y;
+}
+
 } // namespace eggui
 
 #endif

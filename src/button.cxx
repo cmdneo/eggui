@@ -1,10 +1,9 @@
 #include <algorithm>
 
-#include "raylib/raylib.h"
-
+#include "graphics.hxx"
+#include "canvas.hxx"
 #include "button.hxx"
 #include "theme.hxx"
-#include "utils.hxx"
 
 using namespace eggui;
 
@@ -25,23 +24,18 @@ Widget *Button::notify(Event ev)
 
 void Button::draw()
 {
+	// const auto pen = acquire_pen();
+
 	auto color = BUTTON_COLOR;
 	if (is_pressed)
 		color = BUTTON_CLICK_COLOR;
 	else if (is_hovering)
 		color = BUTTON_HOVER_COLOR;
 
-	auto rect = points_to_rec(get_position(), get_size());
-	auto segs = std::min(4, get_size().min_coord() / 4);
-	DrawRectangleRounded(rect, 0.25, segs, color);
+	draw_rounded_rect(get_position(), get_size(), 0.25, color);
 
 	// Draw centered text
-	auto text_size = MeasureTextEx(EG_MONO_FONT, label, EG_FONT_SIZE, 0);
-	// Text must be drawn at integer coords, otherwise it does not get rendered properly
-	int posx = rect.x + (rect.width - text_size.x) / 2;
-	int posy = rect.y + (rect.height - EG_FONT_SIZE) / 2;
-	DrawTextEx(
-		EG_MONO_FONT, label, Vector2{1.f * posx, 1.f * posy}, EG_FONT_SIZE, 0,
-		TEXT_COLOR
-	);
+	auto text_size = tell_text_size(label, FontSize::Small);
+	auto text_pos = get_position() + (get_size() - text_size) / 2;
+	draw_text(text_pos, RGBA(255, 255, 255), label, FontSize::Small);
 }

@@ -1,16 +1,21 @@
+#include <cassert>
+
 #include "raylib/raylib.h"
 
 #include "theme.hxx"
 #include "event.hxx"
 #include "widget.hxx"
+#include "container.hxx"
+#include "graphics.hxx"
+#include "canvas.hxx"
 
 using namespace eggui;
 
+Pen Widget::acquire_pen() { return canvas.acquire_pen(); }
+
 void Widget::draw_debug()
 {
-	DrawRectangleLines(
-		position.x, position.y, box_size.x, box_size.y, DEBUG_BORDER_COLOR
-	);
+	draw_rect_lines(get_position(), get_size(), DEBUG_BORDER_COLOR);
 }
 
 bool Interactive::handle_mouse_hover_events(Event ev)

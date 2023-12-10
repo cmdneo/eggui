@@ -5,21 +5,17 @@
 #include <memory>
 #include <utility>
 
+// Point and Event are re-exported by widget.hxx, so need to include these if
+// widget.hxx is included by the source file.
+// TODO impl above in all.
 #include "point.hxx"
 #include "event.hxx"
+#include "graphics.hxx"
+#include "canvas.hxx"
 
 namespace eggui
 {
-
-enum class FontSize {
-	Tiny,
-	Small,
-	Medium,
-	Large,
-	Huge,
-};
-
-constexpr int FONT_SIZE_COUNT = 5;
+class Container; // Forward declaration
 
 class Widget
 {
@@ -30,8 +26,7 @@ public:
 	}
 
 	Widget(int x, int y, int w, int h)
-		: position(x, y)
-		, box_size(w, h)
+		: canvas(Point(x, y), Point(w, h))
 	{
 	}
 
@@ -42,28 +37,33 @@ public:
 		// Screen rectange points are: (0, 0) and (win_width-1, win_height-1)
 		// Check if bounding box of the widget collides with that of the screen.
 		return check_box_collision(
-			position, box_size, Point(0, 0), Point(win_width, win_height)
+			canvas.get_position(), canvas.get_size(), Point(0, 0),
+			Point(win_width, win_height)
 		);
 	}
 
-	Point get_position() const { return position; }
-	Point get_size() const { return box_size; }
-	Widget *get_parent() const { return parent; }
+	/// @brief Acquire the pen of the canvas for drawing the widget.
+	/// @return
+	Pen acquire_pen();
+
+	Point get_position() const { return canvas.get_position(); }
+	Point get_size() const { return canvas.get_size(); }
+	Widget *get_parent() { return parent; }
 
 	/// @brief Set parent of the widget.
-	/// @param w Parent widget, it is generally a container
+	/// @param w Parent widget, it is generally a container.
 	void set_parent(Widget *w) { parent = w; }
 
 	/// @brief Move the container along with its children
 	/// @param new_pos New position
-	virtual void set_position(Point new_pos) { position = new_pos; }
+	virtual void set_position(Point new_pos) { canvas.set_position(new_pos); }
 
 	/// @brief Update size re-layout its children(if any) as per its new size.
 	/// @param width  New width
 	/// @param height New height
 	virtual void set_size(int width, int height)
 	{
-		box_size = Point(width, height);
+		canvas.resize_texture(Point(width, height));
 	}
 
 	/// @brief Handle the event or pass it onto its eligible child(if any).
@@ -94,9 +94,12 @@ public:
 	void set_ypos(int y) { set_position(Point(get_position().x, y)); }
 
 private:
-	Widget *parent;
-	Point position;
-	Point box_size;
+	// Parent widget at a time a widget can have only one parent.
+	Widget *parent = nullptr;
+	// Position relative to the parent and size of the widget are the same as
+	// that of the canvas, so we do not need to store them again.
+	/// Canvas on which the widget will be drawn.
+	Canvas canvas;
 };
 
 class Interactive : public Widget

@@ -14,7 +14,16 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
-add_library(eggui src/window.cxx src/widget.cxx src/container.cxx src/button.cxx)
+add_library(eggui
+	src/window.cxx
+	src/managers.cxx
+	src/canvas.cxx
+	src/graphics.cxx
+	src/widget.cxx
+	src/container.cxx
+	src/button.cxx
+	src/scrollable.cxx
+)
 
 # Add examples
 add_executable(test_main examples/some_test.cxx)

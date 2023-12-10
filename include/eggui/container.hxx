@@ -1,23 +1,32 @@
 #ifndef CONTAINER_HXX_INCLUDED
 #define CONTAINER_HXX_INCLUDED
 
+#include <cstdint>
 #include <memory>
+#include <vector>
+#include <deque>
 #include <utility>
 
 #include "point.hxx"
 #include "event.hxx"
 #include "widget.hxx"
+#include "graphics.hxx"
 
 namespace eggui
 {
-enum class Alignment : char {
+enum class Alignment {
 	Start,
 	Center,
 	End,
 };
 
-// Direction can be used as bit flags extracting by its underying type.
-enum class Direction : unsigned {
+enum class Orientation {
+	Horizontal,
+	Vertical,
+};
+
+// Direction can be used as bit flags extracting by its underying integer.
+enum class Direction : std::uint8_t {
 	Top = 1,
 	Bottom = 1 << 1,
 	Left = 1 << 2,
@@ -36,21 +45,13 @@ public:
 	{
 	}
 
+	/// @brief Do layout and size calculation for the container.
 	virtual void layout_children() = 0;
-
-	void draw_debug() override;
-
-	void draw() override {}
 
 	void set_size(int width, int height) override;
 
 protected:
-	// Keeps track the rectangular area available while the laying out widgets.
-	// Free range is start inclusive, just like left inclusive range but in 2D.
-	Point free_start{};
-	Point free_end{};
-
-	std::vector<std::unique_ptr<Widget>> children;
+	bool dirty = true;
 };
 
 // /// @brief Has a single child, used to give padding
@@ -99,12 +100,57 @@ protected:
 // 	void layout_child_widget(Widget &child);
 // };
 
-class Grid final : public Container
+class LinearBox final : public Container
 {
 public:
 	using Container::Container;
 
-	Grid() = default;
+	LinearBox(Orientation orient)
+		: orientation(orient)
+	{
+	}
+
+	void set_gap(int gap) { item_gap = gap; }
+
+	Widget *add_widget_start(std::unique_ptr<Widget> child);
+	Widget *add_widget_end(std::unique_ptr<Widget> child);
+
+	void layout_children() override;
+
+	Widget *notify(Event ev) override;
+	void set_position(Point new_pos) override;
+	void draw_debug() override;
+	void draw() override;
+
+private:
+	/// @brief Get x or y of a point depending on the orientation.
+	/// @param pt
+	/// @return
+	// inline int get_ocoord(Point pt) {}
+
+	// Deque because we will need to add and remove elements from both ends.
+	// Children pushed to start, first element is placed at the start.
+	std::deque<std::unique_ptr<Widget>> start_children;
+	// Children pushed to end, last element is placed at the end.
+	std::deque<std::unique_ptr<Widget>> end_children;
+
+	// Layout orientation: row or column.
+	Orientation orientation = Orientation::Horizontal;
+	// Meaning of the below three depend on orientation.
+	// Box relative position parallel to orientation from where the cell starts.
+	std::vector<float> cell_offsets;
+	// Size of each cell in the parallel to orientation.
+	std::vector<float> cell_sizes;
+	// Size of every cell perpendicular to orientation.
+	int max_cell_size;
+
+	int item_gap = 0;
+};
+
+class Grid final : public Container
+{
+public:
+	using Container::Container;
 
 	void set_row_gap(int gap) { row_gap = gap; }
 	void set_col_gap(int gap) { col_gap = gap; }
@@ -134,12 +180,10 @@ public:
 		int row_span = 1
 	);
 
-	/// @brief Do layout calculation set position for each children in the grid.
 	void layout_children() override;
 
 	Widget *notify(Event ev) override;
 	void set_position(Point new_pos) override;
-	void set_size(int width, int height) override;
 	void draw_debug() override;
 	void draw() override;
 
@@ -158,12 +202,10 @@ private:
 
 	std::vector<Child> children;
 
-	// Since sizes can be fractional and using integers may cause
-	// them to drift by a few pixels, therefore, we use floats.
-	// It is the size needed by the largest cell in row/column.
+	// The size needed by the largest cell in row/column.
 	std::vector<float> row_sizes;
 	std::vector<float> col_sizes;
-	// Position from where the row/column starts relative to grid position.
+	// Grid relative position from where the row/column starts.
 	std::vector<float> row_offsets;
 	std::vector<float> col_offsets;
 

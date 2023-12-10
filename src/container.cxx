@@ -3,18 +3,21 @@
 #include <memory>
 #include <ranges>
 #include <utility>
+#include <functional>
 #include <type_traits>
-
-#include "raylib/raylib.h"
 
 #include "widget.hxx"
 #include "container.hxx"
 #include "theme.hxx"
 #include "point.hxx"
+#include "graphics.hxx"
+
+namespace ranges = std::ranges;
 
 using namespace eggui;
 
-enum class FillMode { Column, Row };
+using std::pair;
+using std::unique_ptr;
 
 /// @brief Calculates the relative-position of child inside contatiner as per
 /// horinzontal and vertical alingments.
@@ -41,75 +44,8 @@ Point calc_align_offset(
 	);
 }
 
-// Point put_box_in_container(
-// 	Point &free_start, Point &free_end, Point box_size, Anchor corner,
-// 	FillMode fill
-// )
-// {
-// 	auto size = box_size;
-// 	auto start = free_start;
-// 	auto end = free_end;
-
-// 	// Box positions for each anchor corner in order: TL, TR, BL, BR.
-// 	Point all_positions[] = {
-// 		start,
-// 		Point(end.x - size.x, start.y),
-// 		Point(start.x, end.y - size.y),
-// 		end - size,
-// 	};
-
-// 	if (fill == FillMode::Row) {
-// 		switch (corner) {
-// 		case Anchor::TopLeft:
-// 		case Anchor::TopRight:
-// 			start.y += size.y;
-// 			break;
-
-// 		case Anchor::BottomLeft:
-// 		case Anchor::BottomRight:
-// 			end.y -= size.y;
-// 			break;
-// 		}
-// 	} else {
-// 		switch (corner) {
-// 		case Anchor::TopLeft:
-// 		case Anchor::BottomLeft:
-// 			start.x += size.x;
-// 			break;
-
-// 		case Anchor::TopRight:
-// 		case Anchor::BottomRight:
-// 			end.x -= size.x;
-// 			break;
-// 		}
-// 	}
-
-// 	auto space_left = end - start;
-// 	if (space_left.x < 0 || space_left.y < 0) {
-// 		TraceLog(LOG_FATAL, "%s: Box does not fit.", __func__);
-// 		abort();
-// 	}
-
-// 	// Update only if the box fits
-// 	free_start = start;
-// 	free_end = end;
-// 	return all_positions[int(corner)];
-// }
-
-void Container::draw_debug()
-{
-	Widget::draw_debug();
-
-	auto size = free_end - free_start;
-	if (size.x > 0 && size.y > 0)
-		DrawRectangle(
-			free_start.x, free_start.y, size.x, size.y, {0, 255, 0, 16}
-		);
-
-	for (auto &c : children)
-		c->draw_debug();
-}
-
+// Container members
+//---------------------------------------------------------
 void Container::set_size(int width, int height)
 {
 	// We never keep a container a less than its minimum size
@@ -119,81 +55,73 @@ void Container::set_size(int width, int height)
 	width = std::max(min_sz.x, width);
 	height = std::max(min_sz.y, height);
 	Widget::set_size(width, height);
-
-	// A layout calculation is needed after resize
-	free_start = get_position();
-	free_end = get_position() + get_size();
 }
 
-// void HorizontalContainer::layout_child_widget(Widget &child)
-// {
-// 	// We set first set the position then set size so that
-// 	// layout calcualations work properly.
-// 	auto size = child.calc_min_size();
-// 	auto pos = put_box_in_container(
-// 		free_start, free_end, size, child.anchor_corner, FillMode::Column
-// 	);
-// 	child.set_position(pos);
+// LinearBox members
+//---------------------------------------------------------
+Widget *LinearBox::add_widget_start(unique_ptr<Widget> child)
+{
+	auto ret = child.get();
+	child->set_parent(this);
+	start_children.push_back(std::move(child));
+	return ret;
+}
 
-// 	// If it is a container then we need stretch and set its size.
-// 	// Strech and fill column if smaller.
-// 	auto cont = dynamic_cast<Container *>(&child);
-// 	if (cont) {
-// 		cont->set_ypos(get_position().y);
-// 		cont->set_size(size.x, std::max(get_size().y, size.y));
-// 	}
-// }
+Widget *LinearBox::add_widget_end(unique_ptr<Widget> child)
+{
+	auto ret = child.get();
+	child->set_parent(this);
+	end_children.push_front(std::move(child));
+	return ret;
+}
 
-// Point HorizontalContainer::calc_min_size()
-// {
-// 	Point min_sz(0, 0);
+void LinearBox::layout_children()
+{
+	const int count = start_children.size() + end_children.size();
+	cell_offsets.resize(count);
+	cell_sizes.resize(count);
+	ranges::fill(cell_offsets, 0);
+	ranges::fill(cell_sizes, 0);
 
-// 	for (auto &c : children) {
-// 		auto sz = c->calc_min_size();
-// 		min_sz.x += sz.x;
-// 		min_sz.y = std::max(min_sz.y, sz.y);
-// 	}
+	// Get x or y of the point depending on the orientation we are in.
+	// In horizontal we want height and in vertical we want width.
 
-// 	return min_sz;
-// }
+	std::function<int(Point)> get_ocoord;
+	if (orientation == Orientation::Horizontal)
+		get_ocoord = [](Point pt) { return pt.y; };
+	else
+		get_ocoord = [](Point pt) { return pt.x; };
 
-// void VerticalContainer::layout_child_widget(Widget &child)
-// {
-// 	// We set first set the position then set size so that
-// 	// layout calcualations work properly.
-// 	auto size = child.calc_min_size();
-// 	auto pos = put_box_in_container(
-// 		free_start, free_end, size, child.anchor_corner, FillMode::Row
-// 	);
-// 	child.set_position(pos);
+	// auto size_it = cell_sizes.begin();
+	// Calculate size of each cell along with the
+	// offsets for the columns(orient=H) or rows(orient=V).
+	ranges::for_each((start_children), [&](auto &c) {
+		max_cell_size = std::max(max_cell_size, get_ocoord(c->get_size()));
+	});
+}
 
-// 	// If it is a container then we need stretch and set its size.
-// 	// Strech and fill row if smaller.
-// 	auto cont = dynamic_cast<Container *>(&child);
-// 	if (cont) {
-// 		cont->set_xpos(get_position().x);
-// 		cont->set_size(std::max(get_size().x, size.x), size.y);
-// 	}
-// }
+Widget *LinearBox::notify(Event) { return nullptr; }
 
-// Point VerticalContainer::calc_min_size()
-// {
-// 	Point min_sz(0, 0);
+void LinearBox::set_position(Point) {}
 
-// 	for (auto &c : children) {
-// 		auto sz = c->calc_min_size();
-// 		min_sz.x = std::max(min_sz.x, sz.x);
-// 		min_sz.y += sz.y;
-// 	}
+void LinearBox::draw_debug()
+{
+	Container::draw_debug();
 
-// 	return min_sz;
-// }
+	for (auto pos : cell_offsets) {
+	}
+}
 
+void LinearBox::draw() {}
+
+// Grid members
+//---------------------------------------------------------
 Widget *Grid::add_widget_beside(
-	std::unique_ptr<Widget> child, const Widget *beside, Direction stick,
+	unique_ptr<Widget> child, const Widget *beside, Direction stick,
 	int column_span, int row_span
 )
 {
+	assert(!child->get_parent());
 	assert(beside);
 	assert(row_span > 0);
 	assert(column_span > 0);
@@ -204,21 +132,22 @@ Widget *Grid::add_widget_beside(
 	if (sibling == children.end())
 		return nullptr;
 
-	auto has_bit = [](Direction flags, Direction flag) {
+	auto has_flag = [](Direction flags, Direction flag) {
 		using T = std::underlying_type_t<Direction>;
-		return static_cast<T>(flags) & static_cast<T>(flag);
+		auto uflag = static_cast<T>(flag);
+		return (static_cast<T>(flags) & uflag) == uflag;
 	};
 
 	auto gpos = sibling->grid_pos;
 
-	if (has_bit(stick, Direction::Top))
+	if (has_flag(stick, Direction::Top))
 		gpos.y -= row_span;
-	else if (has_bit(stick, Direction::Bottom))
+	else if (has_flag(stick, Direction::Bottom))
 		gpos.y += sibling->span.y;
 
-	if (has_bit(stick, Direction::Left))
+	if (has_flag(stick, Direction::Left))
 		gpos.x += sibling->span.x;
-	else if (has_bit(stick, Direction::Right))
+	else if (has_flag(stick, Direction::Right))
 		gpos.x -= column_span;
 
 	if (gpos.x < 0 || gpos.y < 0)
@@ -228,10 +157,10 @@ Widget *Grid::add_widget_beside(
 }
 
 Widget *Grid::add_widget(
-	std::unique_ptr<Widget> child, int column, int row, int column_span,
-	int row_span
+	unique_ptr<Widget> child, int column, int row, int column_span, int row_span
 )
 {
+	assert(!child->get_parent());
 	assert(row >= 0);
 	assert(column >= 0);
 	assert(row_span > 0);
@@ -252,6 +181,8 @@ Widget *Grid::add_widget(
 		row_count = end.y;
 
 	auto ret_ptr = child.get();
+	child->set_parent(this);
+
 	children.push_back(Child{
 		.widget = std::move(child),
 		.grid_pos = pos,
@@ -265,16 +196,14 @@ Widget *Grid::add_widget(
 
 void Grid::layout_children()
 {
-	using std::ranges::fill;
-
 	row_sizes.resize(row_count);
 	col_sizes.resize(col_count);
 	row_offsets.resize(row_count);
 	col_offsets.resize(col_count);
-	fill(row_sizes, 0);
-	fill(col_sizes, 0);
-	fill(row_offsets, 0);
-	fill(col_offsets, 0);
+	ranges::fill(row_sizes, 0);
+	ranges::fill(col_sizes, 0);
+	ranges::fill(row_offsets, 0);
+	ranges::fill(col_offsets, 0);
 
 	auto get_child_range = [](Child &c) {
 		return std::pair(c.grid_pos, c.grid_pos + c.span);
@@ -369,28 +298,31 @@ void Grid::set_position(Point new_pos)
 		c.widget->set_position(c.widget->get_position() + delta);
 }
 
-void Grid::set_size(int width, int height) { Widget::set_size(width, height); }
-
 void Grid::draw_debug()
 {
-	Widget::draw_debug();
+	Container::draw_debug();
 
+	const RGBA PINK(255, 109, 192);
 	auto start = get_position();
 	auto end = start + get_size();
 
 	// Draw each row and column line, also draw the gap between them.
 	for (int i = 0; i < col_count; ++i) {
-		int px = start.x + col_offsets[i];
-		DrawLine(px, start.y, px, end.y, PINK);
-		px += col_sizes[i];
-		DrawLine(px, start.y, px, end.y, PINK);
+		Point p1 = start + Point(col_offsets[i], 0);
+		Point p2 = Point(p1.x, end.y);
+		draw_line(p1, p2, PINK);
+		p1.x += col_sizes[i];
+		p2.x += col_sizes[i];
+		draw_line(p1, p2, PINK);
 	}
 
 	for (int i = 0; i < row_count; ++i) {
-		int py = start.y + row_offsets[i];
-		DrawLine(start.x, py, end.x, py, PINK);
-		py += row_sizes[i];
-		DrawLine(start.x, py, end.x, py, PINK);
+		Point p1 = start + Point(0, row_offsets[i]);
+		Point p2 = Point(end.x, p1.y);
+		draw_line(p1, p2, PINK);
+		p1.x += row_sizes[i];
+		p1.x += row_sizes[i];
+		draw_line(p1, p2, PINK);
 	}
 
 	for (auto &c : children)
