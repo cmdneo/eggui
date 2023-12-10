@@ -24,8 +24,9 @@ public:
 		on_click = callback;
 	}
 
-	Widget *notify(Event ev) override;
-	void draw() override;
+protected:
+	Widget *notify_impl(Event ev) override;
+	void draw_impl() override;
 
 private:
 	std::function<void(Button &)> on_click = [](auto &) {};

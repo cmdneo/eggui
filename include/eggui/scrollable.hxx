@@ -26,10 +26,14 @@ public:
 		on_drag = callback;
 	}
 
-	Point get_center_postion() const { return get_position() + get_size() / 2; }
+	Point get_center_position() const
+	{
+		return get_position() + get_size() / 2;
+	}
 
-	Widget *notify(Event ev) override;
-	void draw() override;
+protected:
+	Widget *notify_impl(Event ev) override;
+	void draw_impl() override;
 
 private:
 	std::function<void(Point delta)> on_drag;
@@ -49,14 +53,10 @@ public:
 
 	void set_scroll_position(Point rel_click_pos);
 
-	void set_position(Point pos) override
-	{
-		Interactive::set_position(pos);
-		slider.set_position(pos);
-	}
-
-	Widget *notify(Event ev) override;
-	void draw() override;
+protected:
+	Widget *notify_impl(Event ev) override;
+	void draw_impl() override;
+	void draw_debug_impl() override;
 
 private:
 	std::function<void(float)> on_scroll;
@@ -70,21 +70,12 @@ public:
 	ScrollableView(
 		std::unique_ptr<Container> container_, bool x_axis, bool y_axis,
 		bool invert_axes = true
-	)
-		: Widget(0, 0)
-		, container(std::move(container_))
-		, h_scrollbar(0, 0, ScrollBar::Axis::X)
-		, v_scrollbar(0, 0, ScrollBar::Axis::Y)
-		, x_scroll_enabled(x_axis)
-		, y_scroll_enabled(y_axis)
-		, axes_inverted(invert_axes)
-	{
-		h_scrollbar.set_parent(this);
-		v_scrollbar.set_parent(this);
-	}
+	);
 
-	Widget *notify(Event ev) override;
-	void draw() override;
+protected:
+	Widget *notify_impl(Event ev) override;
+	void draw_impl() override;
+	void draw_debug_impl() override;
 
 private:
 	std::unique_ptr<Container> container = nullptr;

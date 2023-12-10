@@ -7,7 +7,7 @@
 
 using namespace eggui;
 
-Widget *Button::notify(Event ev)
+Widget *Button::notify_impl(Event ev)
 {
 	if (handle_mouse_hover_events(ev))
 		return this;
@@ -19,13 +19,11 @@ Widget *Button::notify(Event ev)
 		return this;
 	}
 
-	return Interactive::notify(ev);
+	return Interactive::notify_impl(ev);
 };
 
-void Button::draw()
+void Button::draw_impl()
 {
-	ACQUIRE_CLEARED_CLEAR();
-
 	auto color = BUTTON_COLOR;
 	if (is_pressed)
 		color = BUTTON_CLICK_COLOR;

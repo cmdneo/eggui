@@ -47,7 +47,6 @@ public:
 
 	/// @brief Do layout and size calculation for the container.
 	virtual void layout_children() = 0;
-
 	void set_size(Point new_size) override;
 
 protected:
@@ -71,10 +70,11 @@ public:
 
 	void layout_children() override;
 
-	Widget *notify(Event ev) override;
+protected:
+	Widget *notify_impl(Event ev) override;
 	void set_position(Point new_pos) override;
-	void draw_debug() override;
-	void draw() override;
+	void draw_debug_impl() override;
+	void draw_impl() override;
 
 private:
 	/// @brief Get x or y of a point depending on the orientation.
@@ -136,10 +136,11 @@ public:
 
 	void layout_children() override;
 
-	Widget *notify(Event ev) override;
+protected:
+	Widget *notify_impl(Event ev) override;
 	void set_position(Point new_pos) override;
-	void draw_debug() override;
-	void draw() override;
+	void draw_debug_impl() override;
+	void draw_impl() override;
 
 private:
 	struct Child {

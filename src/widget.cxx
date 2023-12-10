@@ -13,16 +13,29 @@ using namespace eggui;
 
 Pen Widget::acquire_pen() { return canvas.acquire_pen(); }
 
+Widget *Widget::notify(Event ev)
+{
+	// Make cursor position relative to the widget.
+	ev.cursor -= get_position();
+	return notify_impl(ev);
+}
+
 void Widget::draw_debug()
 {
-	// This function is called by its subclasses to draw the boundary
-	// so check then acquire a pen.
-	if (!canvas.has_active_pen()) {
-		const auto pen = acquire_pen();
-		draw_rect_lines(Point(), get_size(), DEBUG_BORDER_COLOR);
-	} else {
-		draw_rect_lines(Point(), get_size(), DEBUG_BORDER_COLOR);
-	}
+	const auto pen = acquire_pen();
+	draw_debug_impl();
+}
+
+void Widget::draw()
+{
+	const auto pen = acquire_pen();
+	clear_background();
+	draw_impl();
+};
+
+void Widget::draw_debug_impl()
+{
+	draw_rect_lines(Point(), get_size(), DEBUG_BORDER_COLOR);
 }
 
 bool Interactive::handle_mouse_hover_events(Event ev)
@@ -59,11 +72,23 @@ bool Interactive::handle_mouse_press_events(Event ev)
 		break;
 	case EventType::MouseReleased:
 		is_pressed = false;
+		break;
 
 	default:
 		return false;
-		break;
 	}
 
 	return true;
+}
+
+Widget *Interactive::notify_impl(Event ev)
+{
+	if (!is_disabled() && ev.type == EventType::IsInteractive)
+		was_any_event_handeled = true;
+
+	if (was_any_event_handeled) {
+		was_any_event_handeled = false;
+		return this;
+	}
+	return nullptr;
 }

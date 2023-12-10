@@ -13,11 +13,6 @@
 #include "graphics.hxx"
 #include "canvas.hxx"
 
-// Acquire pen and clear the background to backgroud color.
-#define ACQUIRE_CLEARED_CLEAR()     \
-	const auto pen = acquire_pen(); \
-	clear_background()
-
 namespace eggui
 {
 class Container; // Forward declaration
@@ -47,10 +42,6 @@ public:
 		);
 	}
 
-	/// @brief Acquire the pen of the canvas for drawing the widget.
-	/// @return
-	Pen acquire_pen();
-
 	Point get_position() const { return canvas.get_position(); }
 	Point get_size() const { return canvas.get_size(); }
 	Widget *get_parent() { return parent; }
@@ -59,7 +50,7 @@ public:
 	/// @param w Parent widget, it is generally a container.
 	void set_parent(Widget *w) { parent = w; }
 
-	/// @brief Move the container along with its children
+	/// @brief Move the widget along with its children
 	/// @param new_pos New position
 	virtual void set_position(Point new_pos) { canvas.set_position(new_pos); }
 
@@ -67,11 +58,6 @@ public:
 	/// @param width  New width
 	/// @param height New height
 	virtual void set_size(Point new_size) { canvas.resize_texture(new_size); }
-
-	/// @brief Handle the event or pass it onto its eligible child(if any).
-	/// @param event Event information
-	/// @return the widget which handeled the event, nullptr if unhandaled.
-	virtual Widget *notify(Event) { return nullptr; }
 
 	/// @brief Calculate the minimum size for the widget
 	/// @return Size
@@ -85,17 +71,50 @@ public:
 		return cursor.is_in_box(get_position(), get_size());
 	}
 
-	/// @brief Draw debug boxes around widget boundaries
-	virtual void draw_debug();
+	// We wrap all the drawing and notification methods to setup
+	// the pen and adjust mouse position relative to the widget.
+	// Actual implementations are in the `*_impl` virtual method.
+	//--------------------------------------------------------------------
 
+	/// @brief Handle the event or pass it onto its eligible child(if any).
+	/// @param event Event information
+	/// @return the widget which handeled the event, nullptr if unhandaled.
+	/// @note For overriding override the `notify_impl` method.
+	Widget *notify(Event ev);
+	/// @brief Draw debug boxes around widget boundaries
+	/// @note For overriding override the `debug_draw_impl` method.
+	void draw_debug();
 	/// @brief Draw the widget
-	virtual void draw() = 0;
+	/// @note For overriding override the `draw_impl` method.
+	void draw();
 
 	// Additional Helper functions
 	void set_xpos(int x) { set_position(Point(x, get_position().y)); }
 	void set_ypos(int y) { set_position(Point(get_position().x, y)); }
 
+	/// @brief Transforms event cursor to be relative to the current widget,
+	/// that is the cursor will be relative to the parent, just like position.
+	/// @param ev Event
+	/// @return Event with transformed cursor
+	Event pass_event(Event ev)
+	{
+		ev.cursor -= get_position();
+		return ev;
+	}
+
+protected:
+	/// @brief Does the event handling, called by `notify`.
+	virtual Widget *notify_impl(Event) { return nullptr; }
+	/// @brief Draws stuff, called by `draw`.
+	virtual void draw_impl() = 0;
+	/// @brief Draws debug boxes, called by `draw_debug`.
+	virtual void draw_debug_impl();
+
 private:
+	/// @brief Acquire the pen of the canvas for drawing the widget.
+	/// @return Pen
+	Pen acquire_pen();
+
 	// Parent widget at a time a widget can have only one parent.
 	Widget *parent = nullptr;
 	// Position relative to the parent and size of the widget are the same as
@@ -109,27 +128,17 @@ class Interactive : public Widget
 public:
 	using Widget::Widget;
 
-	/// @brief Call and return its value for all the events that are ignored
-	///        by the subclass method which overrides this.
-	/// @param ev Event
-	/// @return The widget which handeled the event.
-	Widget *notify(Event ev) override
-	{
-		if (!is_disabled() && ev.type == EventType::IsInteractive)
-			was_any_event_handeled = true;
-
-		if (was_any_event_handeled) {
-			was_any_event_handeled = false;
-			return this;
-		}
-		return nullptr;
-	}
-
 	void disable() { is_disabled_ = true; }
 	void enable() { is_disabled_ = false; }
 	bool is_disabled() const { return is_disabled_; }
 
 protected:
+	/// @brief Call and return its value for all the events that are ignored
+	///        by the subclass method which overrides this.
+	/// @param ev Event
+	/// @return The widget which handeled the event.
+	Widget *notify_impl(Event ev) override;
+
 	/// @brief Manage is-hovering state for an enabled interactive widget.
 	/// @param ev Event, .
 	/// @return Whether any of the events related to it were handled.

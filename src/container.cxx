@@ -100,13 +100,13 @@ void LinearBox::layout_children()
 	});
 }
 
-Widget *LinearBox::notify(Event) { return nullptr; }
+Widget *LinearBox::notify_impl(Event) { return nullptr; }
 
 void LinearBox::set_position(Point) {}
 
-void LinearBox::draw_debug() { Container::draw_debug(); }
+void LinearBox::draw_debug_impl() { Container::draw_debug_impl(); }
 
-void LinearBox::draw() {}
+void LinearBox::draw_impl() {}
 
 // Grid members
 //---------------------------------------------------------
@@ -269,7 +269,7 @@ void Grid::layout_children()
 	}
 }
 
-Widget *Grid::notify(Event ev)
+Widget *Grid::notify_impl(Event ev)
 {
 	for (auto &c : children) {
 		if (!c.widget->collides_with_point(ev.cursor))
@@ -289,9 +289,9 @@ void Grid::set_position(Point new_pos)
 		c.widget->set_position(c.widget->get_position() + delta);
 }
 
-void Grid::draw_debug()
+void Grid::draw_debug_impl()
 {
-	ACQUIRE_CLEARED_CLEAR();
+	Widget::draw_debug_impl();
 
 	const RGBA PINK(255, 109, 192);
 	auto start = get_position();
@@ -320,10 +320,8 @@ void Grid::draw_debug()
 		c.widget->draw_debug();
 }
 
-void Grid::draw()
+void Grid::draw_impl()
 {
-	ACQUIRE_CLEARED_CLEAR();
-
 	for (auto &c : children)
 		c.widget->draw();
 }

@@ -25,6 +25,35 @@ calc_scroll_amount(int bar_len, int slider_len, int click_pos)
 	return {pos, (pos - start) / (end - start)};
 }
 
+// ScrollSlider members
+//---------------------------------------------------------
+Widget *ScrollSlider::notify_impl(Event ev)
+{
+	if (handle_mouse_hover_events(ev))
+		return this;
+	if (handle_mouse_press_events(ev))
+		return this;
+
+	// We do not move it on drag, it is managed by the scrollbar it is in.
+	if (ev.type == EventType::MouseDrag) {
+		on_drag(ev.delta);
+		return this;
+	}
+
+	return Interactive::notify_impl(ev);
+}
+
+void ScrollSlider::draw_impl()
+{
+	auto color = BUTTON_COLOR;
+	if (is_hovering)
+		color = BUTTON_HOVER_COLOR;
+	if (is_pressed)
+		color = BUTTON_CLICK_COLOR;
+
+	draw_rect(Point(), get_size(), color);
+}
+
 // ScrollBar members
 //---------------------------------------------------------
 ScrollBar::ScrollBar(int w, int h, Axis axis)
@@ -37,12 +66,12 @@ ScrollBar::ScrollBar(int w, int h, Axis axis)
 	slider.set_parent(this);
 
 	slider.set_on_drag([this](Point delta) {
-		auto click_pos = slider.get_center_postion() - get_position() + delta;
+		auto click_pos = slider.get_center_position() + delta;
 		set_scroll_position(click_pos);
 	});
 }
 
-Widget *ScrollBar::notify(Event ev)
+Widget *ScrollBar::notify_impl(Event ev)
 {
 	if (slider.collides_with_point(ev.cursor))
 		return slider.notify(ev);
@@ -53,10 +82,10 @@ Widget *ScrollBar::notify(Event ev)
 	// If pressed anywhere on the bar but not on the slider then,
 	// we pretend that the slider was dragged to that position.
 	if (ev.type != EventType::MousePressed)
-		return Interactive::notify(ev);
+		return Interactive::notify_impl(ev);
 
 	// We tell slider that it was hovered, pressed then dragged.
-	auto pos = slider.get_center_postion();
+	auto pos = slider.get_center_position();
 	slider.notify(Event(EventType::MouseIn, pos));
 	slider.notify(Event(EventType::MousePressed, pos));
 
@@ -65,11 +94,15 @@ Widget *ScrollBar::notify(Event ev)
 	return slider.notify(dragged);
 }
 
-void ScrollBar::draw()
+void ScrollBar::draw_debug_impl()
 {
-	ACQUIRE_CLEARED_CLEAR();
+	Widget::draw_debug_impl();
+	slider.draw_debug();
+}
 
-	draw_rect(get_position(), get_size(), SCROLL_BAR_COLOR);
+void ScrollBar::draw_impl()
+{
+	draw_rect(Point(), get_size(), SCROLL_BAR_COLOR);
 	slider.draw();
 }
 
@@ -83,44 +116,29 @@ void ScrollBar::set_scroll_position(Point relative_click_pos)
 	// Set slider postion and tell ScrollView about the scroll
 	int start = center - slider.get_size()[scroll_axis] / 2;
 	Point offset_xy[] = {Point(start, 0), Point(0, start)};
-	slider.set_position(get_position() + offset_xy[scroll_axis]);
+	slider.set_position(offset_xy[scroll_axis]);
 	on_scroll(fract);
-}
-
-// ScrollSlider members
-//---------------------------------------------------------
-Widget *ScrollSlider::notify(Event ev)
-{
-	if (handle_mouse_hover_events(ev))
-		return this;
-	if (handle_mouse_press_events(ev))
-		return this;
-
-	// We do not move it on drag, it is managed by the scrollbar it is in.
-	if (ev.type == EventType::MouseDrag) {
-		on_drag(ev.delta);
-		return this;
-	}
-
-	return Interactive::notify(ev);
-}
-
-void ScrollSlider::draw()
-{
-	ACQUIRE_CLEARED_CLEAR();
-
-	auto color = BUTTON_COLOR;
-	if (is_hovering)
-		color = BUTTON_HOVER_COLOR;
-	if (is_pressed)
-		color = BUTTON_CLICK_COLOR;
-
-	draw_rect(get_position(), get_size(), color);
 }
 
 // ScrollableView members
 //---------------------------------------------------------
-Widget *ScrollableView::notify(Event ev)
+ScrollableView::ScrollableView(
+	std::unique_ptr<Container> container_, bool x_axis, bool y_axis,
+	bool invert_axes
+)
+	: Widget(0, 0)
+	, container(std::move(container_))
+	, h_scrollbar(0, 0, ScrollBar::Axis::X)
+	, v_scrollbar(0, 0, ScrollBar::Axis::Y)
+	, x_scroll_enabled(x_axis)
+	, y_scroll_enabled(y_axis)
+	, axes_inverted(invert_axes)
+{
+	h_scrollbar.set_parent(this);
+	v_scrollbar.set_parent(this);
+}
+
+Widget *ScrollableView::notify_impl(Event ev)
 {
 	// Find the innermost scrollable widget, if none exists then,
 	// this is the one. Scrollbale means responds to scroll event.
@@ -137,7 +155,13 @@ Widget *ScrollableView::notify(Event ev)
 	return container->notify(ev);
 }
 
-void ScrollableView::draw()
+void ScrollableView::draw_debug_impl()
+{
+	Widget::draw_debug_impl();
+	v_scrollbar.draw_debug();
+}
+
+void ScrollableView::draw_impl()
 {
 	// Scrollable does not have its own texture
 }
