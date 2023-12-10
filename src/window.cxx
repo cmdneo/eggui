@@ -6,12 +6,12 @@
 #include "widget.hxx"
 #include "container.hxx"
 #include "window.hxx"
-#include "utils.hxx"
-#include "space_mono.bin.h"
+#include "graphics.hxx"
+#include "roboto_mono.bin.h"
 
 using namespace eggui;
 
-Font EG_MONO_FONT;
+inline Point as_point(Vector2 v) { return Point(v.x, v.y); };
 
 void Window::main_loop(int width_hint, int height_hint)
 {
@@ -32,8 +32,9 @@ void Window::main_loop(int width_hint, int height_hint)
 		size = Point(width_hint, height_hint);
 
 	SetTraceLogLevel(LOG_WARNING);
-	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
+	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
 	InitWindow(size.x, size.y, title);
+	init_graphics();
 
 	// if (min_size.x <= width_hint && min_size.y <= height_hint) {
 	// 	SetWindowMinSize(min_size.x, min_size.y);
@@ -49,10 +50,6 @@ void Window::main_loop(int width_hint, int height_hint)
 	EnableEventWaiting(); // Set sleep till a new event arrives
 	SetExitKey(KEY_NULL); // Do not exit on ESC
 	SetWindowMinSize(min_size.x, min_size.y);
-	EG_MONO_FONT = LoadFontFromMemory(
-		".ttf", SPACE_MONO_REGULAR_TTF, SPACE_MONO_REGULAR_TTF_LEN,
-		EG_FONT_SIZE, nullptr, 0
-	);
 
 	while (1) {
 		update();
@@ -67,7 +64,7 @@ void Window::main_loop(int width_hint, int height_hint)
 			break;
 	}
 
-	UnloadFont(EG_MONO_FONT);
+	deinit_graphics();
 	CloseWindow();
 }
 
@@ -79,12 +76,18 @@ void Window::update()
 		return;
 	}
 
-	Point mpos = vec2_to_point(GetMousePosition());
+#ifndef NDEBUG
+	if (IsKeyPressed(KEY_ESCAPE)) {
+		debug_borders_enabled = !debug_borders_enabled;
+		needs_redraw = true;
+	}
+#endif
+
+	Point mpos = as_point(GetMousePosition());
 
 	// Sends event and records the widget's response and returns the widget.
 	auto notify = [this, mpos](Widget *w, EventType type, Point pd = Point()) {
-		auto ev = Event(type);
-		ev.cursor = mpos;
+		auto ev = Event(type, mpos);
 		ev.shared_pt_ = pd;
 		auto resp = w->notify(ev);
 		needs_redraw = resp ? true : needs_redraw;
@@ -96,7 +99,7 @@ void Window::update()
 	// responded to the button press.
 	if (mouse_down_over) {
 		if (!IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-			auto delta = vec2_to_point(GetMouseDelta());
+			auto delta = as_point(GetMouseDelta());
 			if (delta.x != 0 || delta.y != 0)
 				notify(mouse_down_over, EventType::MouseDrag, delta);
 
@@ -131,7 +134,7 @@ void Window::update()
 	// the mouse is hovering over it along with its delta.
 	// Else notify the newly hovered over widget that it is being hovered.
 	if (hovering_over == hovered) {
-		auto delta = vec2_to_point(GetMouseDelta());
+		auto delta = as_point(GetMouseDelta());
 		notify(hovered, EventType::MouseMotion, delta);
 	} else {
 		hovering_over = notify(hovered, EventType::MouseIn);
@@ -142,7 +145,7 @@ void Window::update()
 		mouse_down_over = notify(hovered, EventType::MousePressed);
 
 	// Mouse scroll event, both axes.
-	auto scroll = vec2_to_point(GetMouseWheelMoveV());
+	auto scroll = as_point(GetMouseWheelMoveV());
 	if (scroll.x != 0 || scroll.y != 0)
 		notify(hovered, EventType::Scroll, scroll);
 }
@@ -153,7 +156,7 @@ void Window::draw()
 
 	BeginDrawing();
 
-	ClearBackground(BACKGROUND_COLOR);
+	clear_background();
 
 	root_container->draw();
 	if (debug_borders_enabled)
