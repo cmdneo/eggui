@@ -13,6 +13,11 @@
 #include "graphics.hxx"
 #include "canvas.hxx"
 
+// Acquire pen and clear the background to backgroud color.
+#define ACQUIRE_CLEARED_CLEAR()     \
+	const auto pen = acquire_pen(); \
+	clear_background()
+
 namespace eggui
 {
 class Container; // Forward declaration
@@ -61,10 +66,7 @@ public:
 	/// @brief Update size re-layout its children(if any) as per its new size.
 	/// @param width  New width
 	/// @param height New height
-	virtual void set_size(int width, int height)
-	{
-		canvas.resize_texture(Point(width, height));
-	}
+	virtual void set_size(Point new_size) { canvas.resize_texture(new_size); }
 
 	/// @brief Handle the event or pass it onto its eligible child(if any).
 	/// @param event Event information

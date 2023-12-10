@@ -46,11 +46,11 @@ public:
 
 	~Canvas();
 
-	/// @brief Acquire a pen for the canvas. If the parent_canvas is present
-	/// then the texture will be drawn on it, otherwise on the screen.
+	/// @brief Acquire a pen for the canvas.
 	/// @return Pen
 	/// @note Only one pen can be active per canvas.
 	Pen acquire_pen();
+	bool has_active_pen() { return active_pen_cnt != 0; }
 
 	/// @brief Set region of the texture which should be drawn.
 	/// @param rect_start Region rectangle start.
@@ -68,7 +68,7 @@ public:
 
 private:
 	// There can be only one active pen per canvas.
-	bool has_active_pen = false;
+	int active_pen_cnt = 0;
 	/// Texture ID for the widget. -1 means no texture allocated.
 	int texture_id = -1;
 	// Full texture size. It is equal to the widget size.

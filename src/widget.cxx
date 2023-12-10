@@ -15,7 +15,14 @@ Pen Widget::acquire_pen() { return canvas.acquire_pen(); }
 
 void Widget::draw_debug()
 {
-	draw_rect_lines(get_position(), get_size(), DEBUG_BORDER_COLOR);
+	// This function is called by its subclasses to draw the boundary
+	// so check then acquire a pen.
+	if (!canvas.has_active_pen()) {
+		const auto pen = acquire_pen();
+		draw_rect_lines(Point(), get_size(), DEBUG_BORDER_COLOR);
+	} else {
+		draw_rect_lines(Point(), get_size(), DEBUG_BORDER_COLOR);
+	}
 }
 
 bool Interactive::handle_mouse_hover_events(Event ev)

@@ -46,15 +46,15 @@ Point calc_align_offset(
 
 // Container members
 //---------------------------------------------------------
-void Container::set_size(int width, int height)
+void Container::set_size(Point new_size)
 {
 	// We never keep a container a less than its minimum size
 	// to ensure proper layout of elements, even if those elements lie outside
 	// of the drawing[(0, 0) to screen_size] area.
 	auto min_sz = calc_min_size();
-	width = std::max(min_sz.x, width);
-	height = std::max(min_sz.y, height);
-	Widget::set_size(width, height);
+	new_size.x = std::max(min_sz.x, new_size.x);
+	new_size.y = std::max(min_sz.y, new_size.y);
+	Widget::set_size(new_size);
 }
 
 // LinearBox members
@@ -104,13 +104,7 @@ Widget *LinearBox::notify(Event) { return nullptr; }
 
 void LinearBox::set_position(Point) {}
 
-void LinearBox::draw_debug()
-{
-	Container::draw_debug();
-
-	for (auto pos : cell_offsets) {
-	}
-}
+void LinearBox::draw_debug() { Container::draw_debug(); }
 
 void LinearBox::draw() {}
 
@@ -210,7 +204,7 @@ void Grid::layout_children()
 	};
 
 	// First we layout all of its children which are Containers.
-	// So that the get their correct size and position.
+	// So that they get their correct size and position.
 	for (auto &c : children) {
 		auto cont = dynamic_cast<Container *>(c.widget.get());
 		if (cont)
@@ -251,7 +245,7 @@ void Grid::layout_children()
 
 	// Remove the gap after the last row and column.
 	Point grid_size(last_x - col_gap, last_y - row_gap);
-	Widget::set_size(grid_size.x, grid_size.y);
+	Widget::set_size(grid_size);
 
 	// Calculate size available to each children for alingment purposes.
 	// Cell(s) may become larger than the child it holds due to another
@@ -267,10 +261,7 @@ void Grid::layout_children()
 
 	// Finally layout all the children
 	for (auto &c : children) {
-		int posx = col_offsets[c.grid_pos.x];
-		int posy = row_offsets[c.grid_pos.y];
-		auto pos = Point(posx, posy) + get_position();
-
+		Point pos(col_offsets[c.grid_pos.x], row_offsets[c.grid_pos.y]);
 		pos += calc_align_offset(
 			c.avail_size, c.widget->get_size(), c.h_align, c.v_align
 		);
@@ -300,7 +291,7 @@ void Grid::set_position(Point new_pos)
 
 void Grid::draw_debug()
 {
-	Container::draw_debug();
+	ACQUIRE_CLEARED_CLEAR();
 
 	const RGBA PINK(255, 109, 192);
 	auto start = get_position();
@@ -331,6 +322,8 @@ void Grid::draw_debug()
 
 void Grid::draw()
 {
+	ACQUIRE_CLEARED_CLEAR();
+
 	for (auto &c : children)
 		c.widget->draw();
 }

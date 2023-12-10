@@ -48,57 +48,11 @@ public:
 	/// @brief Do layout and size calculation for the container.
 	virtual void layout_children() = 0;
 
-	void set_size(int width, int height) override;
+	void set_size(Point new_size) override;
 
 protected:
 	bool dirty = true;
 };
-
-// /// @brief Has a single child, used to give padding
-// /// and alignement to another widgets.
-// class SimpleContainer final : public Container
-// {
-// public:
-// 	SimpleContainer(std::unique_ptr<Widget> child_)
-// 		: child(std::move(child_))
-// 	{
-// 	}
-
-// 	void layout_children() override {}
-
-// private:
-// 	std::unique_ptr<Widget> child;
-// };
-
-// /// @brief Simple container for laying out widgets.
-// /// If the widget is strechable then its height is changed to fill the entire
-// /// column in which it is placed.
-// class HorizontalContainer final : public Container
-// {
-// public:
-// 	using Container::Container;
-
-// 	void layout_children() override {}
-// 	Point calc_min_size() override;
-
-// protected:
-// 	void layout_child_widget(Widget &child);
-// };
-
-// /// @brief Simple container for laying out widgets.
-// /// If the widget is strechable then its width is changed to fill the entire
-// /// row in which it is placed.
-// class VerticalContainer final : public Container
-// {
-// public:
-// 	using Container::Container;
-
-// 	void layout_children() override {}
-// 	Point calc_min_size() override;
-
-// protected:
-// 	void layout_child_widget(Widget &child);
-// };
 
 class LinearBox final : public Container
 {

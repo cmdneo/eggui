@@ -42,7 +42,7 @@ Canvas::~Canvas()
 
 Pen Canvas::acquire_pen()
 {
-	assert(!has_active_pen);
+	assert(active_pen_cnt == 0);
 	return Pen(*this);
 }
 
@@ -51,8 +51,13 @@ void Canvas::resize_texture(Point new_size)
 	if (texture_id != -1)
 		TextureManager::instance().destroy_texture(texture_id);
 
-	texture_id = TextureManager::instance().create_texture(new_size);
 	size = new_size;
+	if (size.x == 0 || size.y == 0) {
+		texture_id = -1;
+		return;
+	}
+
+	texture_id = TextureManager::instance().create_texture(new_size);
 	region_start = Point(0, 0);
 	region_size = new_size;
 }
@@ -73,8 +78,8 @@ Pen::Pen(Canvas &canvas_)
 	// Canvas should have its texture allocated for drawing.
 	assert(canvas.texture_id != -1);
 
-	canvas_.has_active_pen = true;
-	BeginTextureMode(TextureManager::instance().get(canvas.texture_id));
+	canvas.active_pen_cnt++;
+	TextureManager::instance().push_texture(canvas.texture_id);
 }
 
 Pen::~Pen()
@@ -83,12 +88,13 @@ Pen::~Pen()
 	rect.height = -rect.height; // Flip vertically
 	Vector2 pos = {1.f * canvas.position.x, 1.f * canvas.position.y};
 
-	EndTextureMode();
+	auto id = TextureManager::instance().pop_texture();
+	assert(id == canvas.texture_id);
 
 	DrawTextureRec(
 		TextureManager::instance().get(canvas.texture_id).texture, rect, pos,
 		WHITE
 	);
 
-	canvas.has_active_pen = false;
+	canvas.active_pen_cnt--;
 }

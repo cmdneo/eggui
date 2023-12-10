@@ -23,10 +23,17 @@ public:
 	void load_textures();
 	void unload_textures();
 
+	/// @brief Start textured drawing mode for the texture provided.
+	/// @param texture_id Texture id
+	void push_texture(int texture_id);
+	/// @brief End textured drawing mode for the last texture pushed.
+	/// @return The texture_id popped.
+	int pop_texture();
+
 	RenderTexture &get(int id) { return textures[id].first; }
 
 private:
-	TextureManager() { textures.reserve(64); }
+	TextureManager();
 
 	/// @brief Gets a free slot for the new texture, if none exists then
 	///        allocates a new free slot.
@@ -39,6 +46,11 @@ private:
 	/// The SlotState stores info about the state of the slot.
 	std::vector<std::pair<RenderTexture, SlotState>> textures;
 	std::vector<int> free_list;
+
+	// Since only one texture can be active at a time we maintain a list
+	// of textures that are currently used by pens.
+	// We only keep the last pushed texture active.
+	std::vector<int> active_textures;
 };
 
 // TODO complete this

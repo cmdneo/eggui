@@ -33,7 +33,7 @@ ScrollBar::ScrollBar(int w, int h, Axis axis)
 	, scroll_axis(axis)
 {
 	Point size[] = {Point(SLIDER_LENGTH, h), Point(w, SLIDER_LENGTH)};
-	slider.set_size(size[scroll_axis].x, size[scroll_axis].y);
+	slider.set_size(size[scroll_axis]);
 	slider.set_parent(this);
 
 	slider.set_on_drag([this](Point delta) {
@@ -67,8 +67,9 @@ Widget *ScrollBar::notify(Event ev)
 
 void ScrollBar::draw()
 {
-	draw_rect(get_position(), get_size(), SCROLL_BAR_COLOR);
+	ACQUIRE_CLEARED_CLEAR();
 
+	draw_rect(get_position(), get_size(), SCROLL_BAR_COLOR);
 	slider.draw();
 }
 
@@ -106,6 +107,8 @@ Widget *ScrollSlider::notify(Event ev)
 
 void ScrollSlider::draw()
 {
+	ACQUIRE_CLEARED_CLEAR();
+
 	auto color = BUTTON_COLOR;
 	if (is_hovering)
 		color = BUTTON_HOVER_COLOR;
@@ -134,4 +137,7 @@ Widget *ScrollableView::notify(Event ev)
 	return container->notify(ev);
 }
 
-void ScrollableView::draw() {}
+void ScrollableView::draw()
+{
+	// Scrollable does not have its own texture
+}

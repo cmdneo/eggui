@@ -36,17 +36,6 @@ void Window::main_loop(int width_hint, int height_hint)
 	InitWindow(size.x, size.y, title);
 	init_graphics();
 
-	// if (min_size.x <= width_hint && min_size.y <= height_hint) {
-	// 	SetWindowMinSize(min_size.x, min_size.y);
-	// } else {
-	// 	TraceLog(
-	// 		LOG_WARNING,
-	// 		"%s: Provided window size(%dx%d) is too small.\n"
-	// 		"Minimum size should be %dx%d for this configuration.",
-	// 		__func__, width_hint, height_hint, min_size.x, min_size.y
-	// 	);
-	// 	SetWindowMinSize(width_hint, height_hint);
-	// }
 	EnableEventWaiting(); // Set sleep till a new event arrives
 	SetExitKey(KEY_NULL); // Do not exit on ESC
 	SetWindowMinSize(min_size.x, min_size.y);
@@ -72,7 +61,7 @@ void Window::update()
 {
 	if (IsWindowResized()) {
 		needs_redraw = true;
-		root_container->set_size(GetScreenWidth(), GetScreenHeight());
+		root_container->set_size(Point(GetScreenWidth(), GetScreenHeight()));
 		return;
 	}
 

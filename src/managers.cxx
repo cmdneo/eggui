@@ -11,6 +11,12 @@ using std::unique_ptr;
 
 // Texture manager members
 //---------------------------------------------------------
+TextureManager::TextureManager()
+{
+	textures.reserve(64);
+	active_textures.reserve(8);
+}
+
 TextureManager &TextureManager::instance()
 {
 	static unique_ptr<TextureManager> ptr(new TextureManager());
@@ -88,6 +94,34 @@ int TextureManager::get_free_slot()
 	assert(textures[id].second == SlotState::Free);
 
 	return id;
+}
+
+void TextureManager::push_texture(int texture_id)
+{
+	auto [tex, state] = textures[texture_id];
+	assert(state == SlotState::InUse);
+
+	// If any other texture active then replace it.
+	if (!active_textures.empty())
+		EndTextureMode();
+	active_textures.push_back(texture_id);
+	BeginTextureMode(tex);
+}
+
+int TextureManager::pop_texture()
+{
+	assert(!active_textures.empty());
+	assert(textures[active_textures.back()].second == SlotState::InUse);
+
+	EndTextureMode();
+	auto ret = active_textures.back();
+	active_textures.pop_back();
+
+	// If any other texture was active before then re-activate it.
+	if (!active_textures.empty())
+		BeginTextureMode(textures[active_textures.back()].first);
+
+	return ret;
 }
 
 // Font manager members

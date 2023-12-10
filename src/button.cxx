@@ -24,7 +24,7 @@ Widget *Button::notify(Event ev)
 
 void Button::draw()
 {
-	// const auto pen = acquire_pen();
+	ACQUIRE_CLEARED_CLEAR();
 
 	auto color = BUTTON_COLOR;
 	if (is_pressed)
@@ -32,10 +32,10 @@ void Button::draw()
 	else if (is_hovering)
 		color = BUTTON_HOVER_COLOR;
 
-	draw_rounded_rect(get_position(), get_size(), 0.25, color);
+	draw_rounded_rect(Point(), get_size(), 0.25, color);
 
 	// Draw centered text
 	auto text_size = tell_text_size(label, FontSize::Small);
-	auto text_pos = get_position() + (get_size() - text_size) / 2;
+	auto text_pos = (get_size() - text_size) / 2;
 	draw_text(text_pos, RGBA(255, 255, 255), label, FontSize::Small);
 }
