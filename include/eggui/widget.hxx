@@ -28,19 +28,10 @@ public:
 
 	virtual ~Widget() = default;
 
-	bool is_visible(int win_width, int win_height)
-	{
-		// Screen rectange points are: (0, 0) and (win_width-1, win_height-1)
-		// Check if bounding box of the widget collides with that of the screen.
-		return check_box_collision(
-			canvas.get_position(), canvas.get_size(), Point(0, 0),
-			Point(win_width, win_height)
-		);
-	}
-
 	Point get_position() const { return canvas.get_position(); }
+	Point get_absolute_position() const { return abs_position; }
 	Point get_size() const { return canvas.get_size(); }
-	Widget *get_parent() { return parent; }
+	Widget *get_parent() const { return parent; }
 
 	/// @brief Set parent of the widget.
 	/// @param w Parent widget, it is generally a container.
@@ -48,7 +39,7 @@ public:
 
 	/// @brief Move the widget along with its children
 	/// @param new_pos New position
-	virtual void set_position(Point new_pos) { canvas.set_position(new_pos); }
+	virtual void set_position(Point new_pos);
 
 	/// @brief Update size re-layout its children(if any) as per its new size.
 	/// @param width  New width
@@ -87,6 +78,7 @@ public:
 	// Additional Helper functions
 	void set_xpos(int x) { set_position(Point(x, get_position().y)); }
 	void set_ypos(int y) { set_position(Point(get_position().x, y)); }
+	bool is_visible(Point window_size) const;
 
 	/// @brief Transforms event cursor to be relative to the current widget,
 	/// that is the cursor will be relative to the parent, just like position.
@@ -111,12 +103,14 @@ private:
 	/// @return Pen
 	Pen acquire_pen();
 
-	// Parent widget, at a time a widget can have only one parent.
+	/// Parent widget, at a time a widget can have only one parent.
 	Widget *parent = nullptr;
 	// Position relative to the parent and size of the widget are the same as
 	// that of the canvas, so we do not need to store them again.
 	/// Canvas on which the widget will be drawn.
 	Canvas canvas;
+	/// Absolute position on the screen
+	Point abs_position;
 };
 
 class Interactive : public Widget

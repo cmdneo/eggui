@@ -16,9 +16,8 @@ class Pen; // Forward declaration
 /// complete.
 ///
 /// @code {.cpp}
-/// 	Pen pen = canvas.acquire_pen(&parent_canvas);
-/// 	pen.use();
-/// 	draw_circle(Point(50, 50), 21, RGBA{255, 0, 0, 255});
+/// 	const Pen pen = canvas.acquire_pen(&parent_canvas);
+/// 	draw_circle(Point(50, 50), 21, RGBA(255, 0, 0));
 /// @endcode
 class Canvas
 {
@@ -69,9 +68,10 @@ public:
 private:
 	// There can be only one active pen per canvas.
 	int active_pen_cnt = 0;
-	// It is equal to the widget size.
+	// Canvas size.
 	Point size;
-	// Position on where the canvas will be drawn.
+	// Canvas position.
+	// It is relative to the canvas from which the last pen was acquired.
 	Point position;
 
 	// Region of the canvas which should be drawn.

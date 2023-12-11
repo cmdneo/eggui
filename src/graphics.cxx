@@ -71,16 +71,6 @@ inline int fsize_to_index(eggui::FontSize font_size)
 
 namespace eggui
 {
-Point push_translation(Point pt)
-{
-	rlPushMatrix();
-	rlTranslatef(pt.x, pt.y, 0);
-
-	auto tmat = rlGetMatrixTransform();
-	return Point(tmat.m12, tmat.m13);
-}
-
-void pop_translation() { rlPopMatrix(); }
 
 void init_graphics()
 {
@@ -97,6 +87,22 @@ void deinit_graphics()
 	for (auto &font : g_mono_fonts)
 		UnloadFont(font);
 }
+
+void push_translation(Point pt)
+{
+	rlPushMatrix();
+	rlTranslatef(pt.x, pt.y, 0);
+}
+
+void pop_translation() { rlPopMatrix(); }
+
+Point get_total_translation()
+{
+	auto tmat = rlGetMatrixTransform();
+	return Point(tmat.m12, tmat.m13);
+}
+
+Point get_window_size() { return Point(GetScreenWidth(), GetScreenHeight()); }
 
 void clear_background() { ClearBackground(COLOR(BACKGROUND_COLOR)); }
 

@@ -53,10 +53,16 @@ void deinit_graphics();
 
 /// @brief Apply a translation to the drawing position.
 /// @param pos Amount to translate.
-/// @return The total accumulated translation.
-Point push_translation(Point pos);
+void push_translation(Point pos);
 /// @brief Removes the last applied translation.
 void pop_translation();
+/// @brief Calculates total translation till now.
+/// @return Accumulated translation position.
+Point get_total_translation();
+
+/// @brief Get window size in pixels
+/// @return Point: width and height
+Point get_window_size();
 
 // Basic drawing functions
 // They draw according to the translation applied using

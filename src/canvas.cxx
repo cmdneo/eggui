@@ -36,8 +36,8 @@ void Canvas::set_draw_region(Point rect_start, Point rect_size)
 Pen::Pen(Canvas &canvas_)
 	: canvas(canvas_)
 {
-	auto start = push_translation(canvas.position);
-	start += canvas.region_start;
+	push_translation(canvas.position);
+	auto start = get_total_translation() + canvas.region_start;
 	auto size = canvas.region_size;
 
 	BeginScissorMode(start.x, start.y, size.x, size.y);

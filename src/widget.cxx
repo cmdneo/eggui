@@ -8,7 +8,15 @@
 
 using namespace eggui;
 
-Pen Widget::acquire_pen() { return canvas.acquire_pen(); }
+void Widget::set_position(Point new_pos)
+{
+	if (parent)
+		abs_position = new_pos + parent->get_absolute_position();
+	else
+		abs_position = new_pos;
+
+	canvas.set_position(new_pos);
+}
 
 Widget *Widget::notify(Event ev)
 {
@@ -19,12 +27,18 @@ Widget *Widget::notify(Event ev)
 
 void Widget::draw_debug()
 {
+	if (!is_visible(get_window_size()))
+		return;
+
 	const auto pen = acquire_pen();
 	draw_debug_impl();
 }
 
 void Widget::draw()
 {
+	if (!is_visible(get_window_size()))
+		return;
+
 	const auto pen = acquire_pen();
 	clear_background();
 	draw_impl();
@@ -89,3 +103,14 @@ Widget *Interactive::notify_impl(Event ev)
 	}
 	return nullptr;
 }
+
+bool Widget::is_visible(Point window_size) const
+{
+	// Screen rectange points are: (0, 0) and (win_width-1, win_height-1)
+	// Check if bounding box of the widget collides with that of the screen.
+	return check_box_collision(
+		get_absolute_position(), canvas.get_size(), Point(0, 0), window_size
+	);
+}
+
+Pen Widget::acquire_pen() { return canvas.acquire_pen(); }
