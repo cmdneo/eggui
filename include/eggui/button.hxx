@@ -4,7 +4,6 @@
 #include <functional>
 
 #include "widget.hxx"
-#include "event.hxx"
 
 namespace eggui
 {

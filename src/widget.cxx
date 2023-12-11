@@ -1,10 +1,7 @@
 #include <cassert>
 
-#include "raylib/raylib.h"
-
-#include "theme.hxx"
-#include "event.hxx"
 #include "widget.hxx"
+#include "theme.hxx"
 #include "container.hxx"
 #include "graphics.hxx"
 #include "canvas.hxx"

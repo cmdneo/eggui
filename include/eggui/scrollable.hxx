@@ -5,8 +5,6 @@
 #include <utility>
 #include <functional>
 
-#include "event.hxx"
-#include "point.hxx"
 #include "widget.hxx"
 #include "container.hxx"
 

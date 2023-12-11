@@ -5,11 +5,9 @@
 #include <memory>
 #include <utility>
 
-// Point and Event are re-exported by widget.hxx, so need to include these if
-// widget.hxx is included by the source file.
-// TODO impl above in all.
-#include "point.hxx"
-#include "event.hxx"
+#include "point.hxx" // Re-export and use
+#include "event.hxx" // Re-export and use
+
 #include "graphics.hxx"
 #include "canvas.hxx"
 

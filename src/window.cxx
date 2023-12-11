@@ -1,17 +1,15 @@
 #include "raylib/raylib.h"
 
-#include "theme.hxx"
-#include "point.hxx"
-#include "event.hxx"
-#include "widget.hxx"
-#include "container.hxx"
 #include "window.hxx"
+#include "widget.hxx"
+#include "theme.hxx"
+#include "container.hxx"
 #include "graphics.hxx"
 #include "roboto_mono.bin.h"
 
 using namespace eggui;
 
-inline Point as_point(Vector2 v) { return Point(v.x, v.y); };
+inline Point vec2_to_point(Vector2 v) { return Point(v.x, v.y); };
 
 void Window::main_loop(int width_hint, int height_hint)
 {
@@ -72,7 +70,7 @@ void Window::update()
 	}
 #endif
 
-	Point mpos = as_point(GetMousePosition());
+	Point mpos = vec2_to_point(GetMousePosition());
 
 	// Sends event and records the widget's response and returns the widget.
 	auto notify = [this, mpos](Widget *w, EventType type, Point pd = Point()) {
@@ -88,7 +86,7 @@ void Window::update()
 	// responded to the button press.
 	if (mouse_down_over) {
 		if (!IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-			auto delta = as_point(GetMouseDelta());
+			auto delta = vec2_to_point(GetMouseDelta());
 			if (delta.x != 0 || delta.y != 0)
 				notify(mouse_down_over, EventType::MouseDrag, delta);
 
@@ -123,7 +121,7 @@ void Window::update()
 	// the mouse is hovering over it along with its delta.
 	// Else notify the newly hovered over widget that it is being hovered.
 	if (hovering_over == hovered) {
-		auto delta = as_point(GetMouseDelta());
+		auto delta = vec2_to_point(GetMouseDelta());
 		notify(hovered, EventType::MouseMotion, delta);
 	} else {
 		hovering_over = notify(hovered, EventType::MouseIn);
@@ -134,7 +132,7 @@ void Window::update()
 		mouse_down_over = notify(hovered, EventType::MousePressed);
 
 	// Mouse scroll event, both axes.
-	auto scroll = as_point(GetMouseWheelMoveV());
+	auto scroll = vec2_to_point(GetMouseWheelMoveV());
 	if (scroll.x != 0 || scroll.y != 0)
 		notify(hovered, EventType::Scroll, scroll);
 }

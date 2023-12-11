@@ -7,8 +7,6 @@
 #include <deque>
 #include <utility>
 
-#include "point.hxx"
-#include "event.hxx"
 #include "widget.hxx"
 #include "graphics.hxx"
 

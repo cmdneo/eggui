@@ -9,7 +9,6 @@
 #include "widget.hxx"
 #include "container.hxx"
 #include "theme.hxx"
-#include "point.hxx"
 #include "graphics.hxx"
 
 namespace ranges = std::ranges;
@@ -298,22 +297,23 @@ void Grid::draw_debug_impl()
 	auto end = start + get_size();
 
 	// Draw each row and column line, also draw the gap between them.
+	// We draw_rect_lines because draw_line produces a dim line, IDK why.
 	for (int i = 0; i < col_count; ++i) {
 		Point p1 = start + Point(col_offsets[i], 0);
 		Point p2 = Point(p1.x, end.y);
-		draw_line(p1, p2, PINK);
+		draw_rect_lines(p1, Point(1, p2.y - p1.y), PINK);
 		p1.x += col_sizes[i];
 		p2.x += col_sizes[i];
-		draw_line(p1, p2, PINK);
+		draw_rect_lines(p1, Point(1, p2.y - p1.y), PINK);
 	}
 
 	for (int i = 0; i < row_count; ++i) {
 		Point p1 = start + Point(0, row_offsets[i]);
 		Point p2 = Point(end.x, p1.y);
-		draw_line(p1, p2, PINK);
-		p1.x += row_sizes[i];
-		p1.x += row_sizes[i];
-		draw_line(p1, p2, PINK);
+		draw_rect_lines(p1, Point(p2.x - p1.x, 1), PINK);
+		p1.y += row_sizes[i];
+		p2.y += row_sizes[i];
+		draw_rect_lines(p1, Point(p2.x - p1.x, 1), PINK);
 	}
 
 	for (auto &c : children)

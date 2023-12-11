@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <utility>
 
-#include "event.hxx"
 #include "widget.hxx"
 #include "scrollable.hxx"
 #include "theme.hxx"
