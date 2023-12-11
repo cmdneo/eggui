@@ -25,26 +25,27 @@ class Canvas
 	friend class Pen;
 
 public:
-	/// @brief Create blank canvas, no texture is allocated.
 	Canvas() = default;
 	Canvas(const Canvas &) = delete;
 
+	/// @brief Create a canvas.
+	/// @param position Position relative to the screen/parent-canvas.
+	/// @param size Canvas size.
+	Canvas(Point position_, Point size_)
+		: size(size_)
+		, position(position_)
+		, region_start(Point(0, 0))
+		, region_size(size_)
+	{
+	}
+
 	Canvas(Canvas &&c)
-		: texture_id(c.texture_id)
-		, size(c.size)
+		: size(c.size)
 		, position(c.position)
 		, region_start(c.region_start)
 		, region_size(c.region_size)
 	{
 	}
-
-	/// @brief Create a canvas with texture size, no texture is allocated
-	/// if any component of the size is zero.
-	/// @param position Position relative to the screen/parent-canvas.
-	/// @param size Texture size.
-	Canvas(Point position_, Point size_);
-
-	~Canvas();
 
 	/// @brief Acquire a pen for the canvas.
 	/// @return Pen
@@ -52,15 +53,14 @@ public:
 	Pen acquire_pen();
 	bool has_active_pen() { return active_pen_cnt != 0; }
 
-	/// @brief Set region of the texture which should be drawn.
+	/// @brief Set region to which drawing should be restricted to.
 	/// @param rect_start Region rectangle start.
 	/// @param rect_size Region rectangle size.
 	void set_draw_region(Point rect_start, Point rect_size);
 
-	/// @brief Resize the canvas along with underlying texture. It's Expensive.
-	/// It also resets the draw region to default.
-	/// @param new_size New size for the canvas and the texture.
-	void resize_texture(Point new_size);
+	/// @brief Resize the canvas and reset the draw region to default.
+	/// @param new_size New size for the canvas.
+	void set_size(Point new_size);
 
 	void set_position(Point new_pos) { position = new_pos; }
 	Point get_position() const { return position; }
@@ -69,15 +69,13 @@ public:
 private:
 	// There can be only one active pen per canvas.
 	int active_pen_cnt = 0;
-	/// Texture ID for the widget. -1 means no texture allocated.
-	int texture_id = -1;
-	// Full texture size. It is equal to the widget size.
+	// It is equal to the widget size.
 	Point size;
-	// Position on where the texture will be drawn.
+	// Position on where the canvas will be drawn.
 	Point position;
 
-	// Region of the texture which should be drawn.
-	// By default full texture is drawn.
+	// Region of the canvas which should be drawn.
+	// By default full canvas is drawn.
 	Point region_start;
 	Point region_size;
 };
@@ -85,15 +83,12 @@ private:
 /// @brief Draw to the canvas from which it was acquired.
 /// @details
 /// We need to acquire a pen for canvas to start to start drawing on it.
-/// This because, before starting the drawing we need to push the texture for
-/// and after the drawing finishes we need to pop-off the texture and draw it
-/// on the screen/parent-canvas.
-/// If a widget has parent canvas then we need to draw that widget on
-/// Therefore, we use this class for doing those steps. As soon as the pen goes
-/// out of the scope the texture is popped and drawn to screen/parent-canvas.
+/// This is because, before starting the drawing we need to apply the
+/// translation and after the drawing finishes we need to remove the
+/// translation applied on the canvas.
 ///
-/// If multiple pens are active then, the most recently acquired pen will draw
-/// on the canvas of the pen acquired just before it.
+/// If multiple pens are active then, the most recently acquired pen will be
+/// used to draw on its corresponding canvas.
 /// This is the key to drawing a to the parent widget's canvas.
 class Pen
 {
@@ -113,6 +108,8 @@ public:
 
 private:
 	Canvas &canvas;
+	/// Keeps track of the offset we are at.
+	Point offset;
 };
 
 } // namespace eggui

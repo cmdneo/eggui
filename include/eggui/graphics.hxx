@@ -43,21 +43,24 @@ struct RGBA {
 // constexpr int FONT_HEIGHTS[FONT_SIZE_COUNT] = {14, 18, 24, 32, 42};
 // constexpr double MM_PER_UNIT = 0.28;
 
-/// @brief Must be called to load the fonts, textures do other setup work.
+/// @brief Must be called to load the fonts and do other setup work.
 ///
 /// @note Implementation: It should be called after the window has been
 /// initialized and OpenGL context is available.
 void init_graphics();
-
 /// @brief Call before exiting the application.
 void deinit_graphics();
 
+/// @brief Apply a translation to the drawing position.
+/// @param pos Amount to translate.
+/// @return The total accumulated translation.
+Point push_translation(Point pos);
+/// @brief Removes the last applied translation.
+void pop_translation();
+
 // Basic drawing functions
-// If a pen(canvas.hxx) is active then they draw on the texture
-// of the canvas to which the pen belongs to. Otherwise, they
-// draw directly to the screen.
-// If multiple pens are active then the pen which was acquired
-// last is used for drawing.
+// They draw according to the translation applied using
+// push/pop_translation.
 //--------------------------------------------------------------
 // clang-format off
 void clear_background();

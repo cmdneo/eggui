@@ -15,8 +15,6 @@
 
 namespace eggui
 {
-class Container; // Forward declaration
-
 class Widget
 {
 public:
@@ -57,7 +55,7 @@ public:
 	/// @brief Update size re-layout its children(if any) as per its new size.
 	/// @param width  New width
 	/// @param height New height
-	virtual void set_size(Point new_size) { canvas.resize_texture(new_size); }
+	virtual void set_size(Point new_size) { canvas.set_size(new_size); }
 
 	/// @brief Calculate the minimum size for the widget
 	/// @return Size
@@ -115,7 +113,7 @@ private:
 	/// @return Pen
 	Pen acquire_pen();
 
-	// Parent widget at a time a widget can have only one parent.
+	// Parent widget, at a time a widget can have only one parent.
 	Widget *parent = nullptr;
 	// Position relative to the parent and size of the widget are the same as
 	// that of the canvas, so we do not need to store them again.
@@ -140,13 +138,13 @@ protected:
 	Widget *notify_impl(Event ev) override;
 
 	/// @brief Manage is-hovering state for an enabled interactive widget.
-	/// @param ev Event, .
-	/// @return Whether any of the events related to it were handled.
+	/// @param ev Event
+	/// @return true if any of the events related to it were handled.
 	bool handle_mouse_hover_events(Event ev);
 
 	/// @brief Manage is-pressed state for an enabled interactive widget.
-	/// @param ev Event, .
-	/// @return Whether any of the events related to it were handled.
+	/// @param ev Event
+	/// @return true if any of the events related to it were handled.
 	bool handle_mouse_press_events(Event ev);
 
 	// State information for interactive widgets

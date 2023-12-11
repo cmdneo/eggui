@@ -6,13 +6,13 @@
 #include <utility>
 
 #include "raylib/raylib.h"
+#include "raylib/rlgl.h"
 
 #include "roboto_mono.bin.h"
 #include "graphics.hxx"
 #include "point.hxx"
 #include "theme.hxx"
 #include "canvas.hxx"
-#include "managers.hxx"
 
 using namespace eggui;
 
@@ -71,11 +71,19 @@ inline int fsize_to_index(eggui::FontSize font_size)
 
 namespace eggui
 {
+Point push_translation(Point pt)
+{
+	rlPushMatrix();
+	rlTranslatef(pt.x, pt.y, 0);
+
+	auto tmat = rlGetMatrixTransform();
+	return Point(tmat.m12, tmat.m13);
+}
+
+void pop_translation() { rlPopMatrix(); }
+
 void init_graphics()
 {
-	TextureManager::instance().does_gl_context_exist = true;
-	TextureManager::instance().load_textures();
-
 	for (int i = 0; i < FONT_SIZE_COUNT; ++i) {
 		g_mono_fonts[i] = LoadFontFromMemory(
 			".ttf", ROBOTO_MONO_TTF, ROBOTO_MONO_TTF_LEN, FONT_PX_SIZES[i],
@@ -86,12 +94,8 @@ void init_graphics()
 
 void deinit_graphics()
 {
-
 	for (auto &font : g_mono_fonts)
 		UnloadFont(font);
-
-	TextureManager::instance().unload_textures();
-	TextureManager::instance().does_gl_context_exist = false;
 }
 
 void clear_background() { ClearBackground(COLOR(BACKGROUND_COLOR)); }
