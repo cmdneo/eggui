@@ -279,28 +279,17 @@ Widget *Grid::notify_impl(Event ev)
 	return nullptr;
 }
 
-void Grid::set_position(Point new_pos)
-{
-	auto delta = new_pos - get_position();
-	Widget::set_position(new_pos);
-
-	for (auto &c : children)
-		c.widget->set_position(c.widget->get_position() + delta);
-}
-
 void Grid::draw_debug_impl()
 {
-	Widget::draw_debug_impl();
+	constexpr RGBA PINK(255, 109, 192);
 
-	const RGBA PINK(255, 109, 192);
-	auto start = get_position();
-	auto end = start + get_size();
+	Widget::draw_debug_impl();
 
 	// Draw each row and column line, also draw the gap between them.
 	// We draw_rect_lines because draw_line produces a dim line, IDK why.
 	for (int i = 0; i < col_count; ++i) {
-		Point p1 = start + Point(col_offsets[i], 0);
-		Point p2 = Point(p1.x, end.y);
+		Point p1 = Point(col_offsets[i], 0);
+		Point p2 = Point(p1.x, get_size().y);
 		draw_rect_lines(p1, Point(1, p2.y - p1.y), PINK);
 		p1.x += col_sizes[i];
 		p2.x += col_sizes[i];
@@ -308,8 +297,8 @@ void Grid::draw_debug_impl()
 	}
 
 	for (int i = 0; i < row_count; ++i) {
-		Point p1 = start + Point(0, row_offsets[i]);
-		Point p2 = Point(end.x, p1.y);
+		Point p1 = Point(0, row_offsets[i]);
+		Point p2 = Point(get_size().x, p1.y);
 		draw_rect_lines(p1, Point(p2.x - p1.x, 1), PINK);
 		p1.y += row_sizes[i];
 		p2.y += row_sizes[i];

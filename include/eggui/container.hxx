@@ -136,7 +136,6 @@ public:
 
 protected:
 	Widget *notify_impl(Event ev) override;
-	void set_position(Point new_pos) override;
 	void draw_debug_impl() override;
 	void draw_impl() override;
 
