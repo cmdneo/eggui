@@ -52,17 +52,20 @@ public:
 
 	/// @brief Layout all the children using layout info and set size.
 	/// @param size_hint Size available for the layout.
-	/// @note `calc_layout_info` must be called before calling this.
+	/// @note `calc_layout_info` must be called before this.
 	virtual void layout_children(Point size_hint) = 0;
 	/// @brief Calculate layout info but do not actually layout anything.
-	/// @return Minimum size of the container.
+	/// @return Minimum size needed for the container to prevent overflow.
+	/// @note A layout calculation is performed only when required,
+	///       that is, when at least one child has been added or removed.
 	virtual Point calc_layout_info() = 0;
 
 	void set_size(Point new_size) override;
 
 protected:
-	// Needs a layout calculation.
-	bool dirty = true;
+	// Generally a layout calculation needed only when a child is
+	// added or removed from the container.
+	bool needs_layout_calc = true;
 };
 
 class LinearBox final : public Container

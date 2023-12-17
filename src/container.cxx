@@ -242,6 +242,7 @@ Widget *Grid::add_widget(
 		.fill = fill
 	});
 
+	needs_layout_calc = true;
 	return ret_ptr;
 }
 
@@ -300,6 +301,7 @@ void Grid::draw_impl()
 
 void Grid::layout_children(Point size_hint)
 {
+	assert(!needs_layout_calc);
 	assert(row_count == int(row_sizes.size()));
 	assert(col_count == int(col_sizes.size()));
 
@@ -359,7 +361,20 @@ void Grid::layout_children(Point size_hint)
 
 Point Grid::calc_layout_info()
 {
+	if (!needs_layout_calc)
+		return get_min_size();
+	needs_layout_calc = false;
+
 	alloc_row_col_data();
+
+	// We do layout calculation for inner containers but do not actually
+	// layout their children, since doing that requires size available
+	// for the container which we not have right now.
+	for (auto &c : children) {
+		auto cont = dynamic_cast<Container *>(c.widget.get());
+		if (cont)
+			cont->calc_layout_info();
+	}
 
 	// Calculate minimum and maximum size of each row and column.
 	// If a widget spans multiple cells then, we also need to consider the
@@ -367,11 +382,6 @@ Point Grid::calc_layout_info()
 	// those gaps too. For that we simply remove the amount of size it spans
 	// on gaps and only use the remaining size for cells.
 	for (auto &c : children) {
-		// We do layout calculation for inner containers.
-		auto cont = dynamic_cast<Container *>(c.widget.get());
-		if (cont)
-			cont->calc_layout_info();
-
 		auto max_size = c.widget->get_max_size();
 		auto min_size = c.widget->get_min_size();
 
