@@ -23,6 +23,13 @@ enum class Orientation {
 	Vertical,
 };
 
+enum class Fill : std::uint8_t {
+	None,
+	StretchRow,
+	StretchColumn,
+	Stretch,
+};
+
 // Direction can be used as bit flags extracting by its underying integer.
 enum class Direction : std::uint8_t {
 	Top = 1,
@@ -43,11 +50,18 @@ public:
 	{
 	}
 
-	/// @brief Do layout and size calculation for the container.
-	virtual void layout_children() = 0;
+	/// @brief Layout all the children using layout info and set size.
+	/// @param size_hint Size available for the layout.
+	/// @note `calc_layout_info` must be called before calling this.
+	virtual void layout_children(Point size_hint) = 0;
+	/// @brief Calculate layout info but do not actually layout anything.
+	/// @return Minimum size of the container.
+	virtual Point calc_layout_info() = 0;
+
 	void set_size(Point new_size) override;
 
 protected:
+	// Needs a layout calculation.
 	bool dirty = true;
 };
 
@@ -66,7 +80,8 @@ public:
 	Widget *add_widget_start(std::unique_ptr<Widget> child);
 	Widget *add_widget_end(std::unique_ptr<Widget> child);
 
-	void layout_children() override;
+	void layout_children(Point avail_size) override;
+	Point calc_layout_info() override {}
 
 protected:
 	Widget *notify_impl(Event ev) override;
@@ -113,26 +128,29 @@ public:
 	/// @param stick Sticky direction
 	/// @param column_span Default=1
 	/// @param row_span Default=1
+	/// @param fill Enable/disable stretch to fill, default=None.
 	/// @return Pointer to the child if added, otherwise nullptr.
 	Widget *add_widget_beside(
 		std::unique_ptr<Widget> child, const Widget *beside, Direction stick,
-		int column_span = 1, int row_span = 1
+		int column_span = 1, int row_span = 1, Fill fill = Fill::None
 	);
 
-	// TODO Return something else other than the children added??
+	// TODO Return something else other than the child added??
 	/// @brief Add a widget to the grid.
 	/// @param child The widget
 	/// @param column Start column
 	/// @param row Start row
 	/// @param column_span Default=1
 	/// @param row_span Default=1
+	/// @param fill Enable/disable stretch to fill, default=None.
 	/// @return Pointer to the child if added, otherwise nullptr.
 	Widget *add_widget(
 		std::unique_ptr<Widget> child, int column, int row, int column_span = 1,
-		int row_span = 1
+		int row_span = 1, Fill fill = Fill::None
 	);
 
-	void layout_children() override;
+	void layout_children(Point avail_size) override;
+	Point calc_layout_info() override;
 
 protected:
 	Widget *notify_impl(Event ev) override;
@@ -140,16 +158,17 @@ protected:
 	void draw_impl() override;
 
 private:
+	void alloc_row_col_data();
+
 	struct Child {
 		std::unique_ptr<Widget> widget;
-		// Size available to the widget can be larger than its size.
-		Point avail_size;
 		// Top left column and row
 		Point grid_pos;
 		// Number of columns and rows spanned
 		Point span;
 		Alignment h_align;
 		Alignment v_align;
+		Fill fill;
 	};
 
 	std::vector<Child> children;
@@ -160,6 +179,11 @@ private:
 	// Grid relative position from where the row/column starts.
 	std::vector<float> row_offsets;
 	std::vector<float> col_offsets;
+	// Maximum and minimum sizes for scaling purposes
+	std::vector<float> row_max_sizes;
+	std::vector<float> col_max_sizes;
+	std::vector<float> row_min_sizes;
+	std::vector<float> col_min_sizes;
 
 	int row_count = 0;
 	int col_count = 0;

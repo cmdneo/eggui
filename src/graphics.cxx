@@ -61,7 +61,9 @@ inline int calc_segments(float radius, float angle = 360.0)
 {
 	angle = std::abs(angle);
 	// Too many segments value causes artifacts at corners when AA4X is enabled.
-	return radius * 1.5 * angle / 360.;
+	if (radius < 5.)
+		return 10. * angle / 360;
+	return radius * 1.5 * angle / 360;
 }
 
 inline int fsize_to_index(eggui::FontSize font_size)

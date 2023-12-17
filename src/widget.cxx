@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstdio>
 
 #include "widget.hxx"
 #include "theme.hxx"
@@ -8,14 +9,27 @@
 
 using namespace eggui;
 
-void Widget::set_position(Point new_pos)
+void Widget::set_size(Point new_size)
 {
-	if (parent)
-		abs_position = new_pos + parent->get_absolute_position();
-	else
-		abs_position = new_pos;
+	assert(get_min_size().x <= new_size.x && get_min_size().y <= new_size.y);
+	assert(get_max_size().x >= new_size.x && get_max_size().y >= new_size.y);
 
-	canvas.set_position(new_pos);
+	canvas.set_size(new_size);
+}
+
+void Widget::set_position(Point new_pos) { canvas.set_position(new_pos); }
+
+Point Widget::calc_abs_position() const
+{
+	Point ret = get_position();
+
+	Widget *p = parent;
+	while (p) {
+		ret += p->get_position();
+		p = p->parent;
+	}
+
+	return ret;
 }
 
 Widget *Widget::notify(Event ev)
@@ -27,26 +41,32 @@ Widget *Widget::notify(Event ev)
 
 void Widget::draw_debug()
 {
-	if (!is_visible(get_window_size()))
-		return;
-
-	const auto pen = acquire_pen();
+	// Always draw debug info without any clipping
+	const auto pen = canvas.acquire_pen(false);
 	draw_debug_impl();
 }
 
 void Widget::draw()
 {
-	if (!is_visible(get_window_size()))
-		return;
-
-	const auto pen = acquire_pen();
-	clear_background();
-	draw_impl();
+	const auto pen = canvas.acquire_pen();
+	is_drawing_visible = is_visible(pen);
+	if (is_drawing_visible)
+		draw_impl();
 };
 
 void Widget::draw_debug_impl()
 {
 	draw_rect_lines(Point(), get_size(), DEBUG_BORDER_COLOR);
+
+	static char buffer[256];
+	auto pos = calc_abs_position();
+	snprintf(buffer, sizeof buffer, "(%d, %d)", pos.x, pos.y);
+
+	RGBA color = RGBA(255, 128, 0);
+	if (!is_drawing_visible)
+		color.g = 0;
+
+	draw_text(Point(0, 0), color, buffer, FontSize::Tiny);
 }
 
 bool Interactive::handle_mouse_hover_events(Event ev)
@@ -95,22 +115,16 @@ bool Interactive::handle_mouse_press_events(Event ev)
 Widget *Interactive::notify_impl(Event ev)
 {
 	if (!is_disabled() && ev.type == EventType::IsInteractive)
-		was_any_event_handeled = true;
-
-	if (was_any_event_handeled) {
-		was_any_event_handeled = false;
 		return this;
-	}
 	return nullptr;
 }
 
-bool Widget::is_visible(Point window_size) const
+bool Widget::is_visible(const Pen &pen) const
 {
-	// Screen rectange points are: (0, 0) and (win_width-1, win_height-1)
-	// Check if bounding box of the widget collides with that of the screen.
-	return check_box_collision(
-		get_absolute_position(), canvas.get_size(), Point(0, 0), window_size
-	);
-}
+	assert(canvas.has_active_pen());
 
-Pen Widget::acquire_pen() { return canvas.acquire_pen(); }
+	// All widgets are drawn with clipping, so if a widget lies outside of
+	// the clip area then it is not visible.
+	auto [pos, size] = pen.get_clip_region();
+	return check_box_collision(pos, size, Point(0, 0), get_size());
+}

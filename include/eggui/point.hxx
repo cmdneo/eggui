@@ -44,12 +44,22 @@ struct Point {
 };
 
 inline bool operator==(Point l, Point r) { return l.x == r.x && l.y == r.y; }
+
 inline Point operator+(Point l, Point r) { return (l += r); }
 inline Point operator-(Point l, Point r) { return (l -= r); }
-inline Point operator-(Point l) { return Point(-l.x, -l.y); }
+
+inline Point operator+(Point p) { return p; }
+inline Point operator-(Point p) { return Point(-p.x, -p.y); }
+
 inline Point operator*(Point p, int n) { return Point(p.x * n, p.y * n); }
 inline Point operator*(int n, Point p) { return p * n; }
+
 inline Point operator/(Point p, int n) { return Point(p.x / n, p.y / n); }
+
+inline Point mul_components(Point l, Point r)
+{
+	return Point(l.x * r.x, l.y * r.y);
+}
 
 inline Point max_components(Point a, Point b)
 {

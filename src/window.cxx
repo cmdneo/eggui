@@ -19,15 +19,9 @@ void Window::main_loop(int width_hint, int height_hint)
 	//     State of the window changes.
 
 	root_container->set_position(Point(0, 0));
-	root_container->layout_children();
-	auto min_size = root_container->get_size();
-
-	// Only set requested size if constraints satisfy
-	// TODO verify more constraints which are required like
-	//      max size, min size and resizability.
-	auto size = min_size;
-	if (width_hint >= size.x && height_hint >= size.y)
-		size = Point(width_hint, height_hint);
+	root_container->calc_layout_info();
+	root_container->layout_children(Point(width_hint, height_hint));
+	auto size = root_container->get_size();
 
 	SetTraceLogLevel(LOG_WARNING);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
@@ -36,7 +30,7 @@ void Window::main_loop(int width_hint, int height_hint)
 
 	EnableEventWaiting(); // Set sleep till a new event arrives
 	SetExitKey(KEY_NULL); // Do not exit on ESC
-	SetWindowMinSize(min_size.x, min_size.y);
+	SetWindowMinSize(size.x, size.y);
 
 	while (1) {
 		update();

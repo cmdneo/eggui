@@ -23,15 +23,25 @@ public:
 
 	Widget(int x, int y, int w, int h)
 		: canvas(Point(x, y), Point(w, h))
+		, min_box_size(w, h)
+		, max_box_size(w, h)
 	{
 	}
 
 	virtual ~Widget() = default;
 
-	Point get_position() const { return canvas.get_position(); }
-	Point get_absolute_position() const { return abs_position; }
-	Point get_size() const { return canvas.get_size(); }
-	Widget *get_parent() const { return parent; }
+	inline Point get_position() const { return canvas.get_position(); }
+	inline Point get_size() const { return canvas.get_size(); }
+	inline Point get_min_size() const { return min_box_size; }
+	inline Point get_max_size() const { return max_box_size; }
+	inline Widget *get_parent() const { return parent; }
+
+	/// @brief Update size re-layout its children(if any) as per its new size.
+	/// @param new_size  New size
+	virtual void set_size(Point new_size);
+
+	void set_min_size(Point size) { min_box_size = size; }
+	void set_max_size(Point size) { max_box_size = size; }
 
 	/// @brief Set parent of the widget.
 	/// @param w Parent widget, it is generally a container.
@@ -41,14 +51,8 @@ public:
 	/// @param new_pos New position
 	virtual void set_position(Point new_pos);
 
-	/// @brief Update size re-layout its children(if any) as per its new size.
-	/// @param width  New width
-	/// @param height New height
-	virtual void set_size(Point new_size) { canvas.set_size(new_size); }
-
-	/// @brief Calculate the minimum size for the widget
-	/// @return Size
-	virtual Point calc_min_size() { return get_size(); }
+	void set_xpos(int x) { set_position(Point(x, get_position().y)); }
+	void set_ypos(int y) { set_position(Point(get_position().x, y)); }
 
 	/// @brief Checks if the `cursor` is inside the widget's boundary.
 	/// @param cursor Point
@@ -57,6 +61,16 @@ public:
 	{
 		return cursor.is_in_box(get_position(), get_size());
 	}
+
+	/// @brief Calculates the absolute position of the widgte on the screen.
+	/// @return Point
+	Point calc_abs_position() const;
+
+	/// @brief Checks if the widget is visible on the screen if drawn using
+	///        the provided pen.
+	/// @param pen Pen
+	/// @return true if visible, false otherwise.
+	bool is_visible(const Pen &pen) const;
 
 	// We wrap all the drawing and notification methods to setup
 	// the pen and adjust mouse position relative to the widget.
@@ -74,11 +88,7 @@ public:
 	/// @brief Draw the widget
 	/// @note For overriding override the `draw_impl` method.
 	void draw();
-
 	// Additional Helper functions
-	void set_xpos(int x) { set_position(Point(x, get_position().y)); }
-	void set_ypos(int y) { set_position(Point(get_position().x, y)); }
-	bool is_visible(Point window_size) const;
 
 	/// @brief Transforms event cursor to be relative to the current widget,
 	/// that is the cursor will be relative to the parent, just like position.
@@ -99,18 +109,20 @@ protected:
 	virtual void draw_debug_impl();
 
 private:
-	/// @brief Acquire the pen of the canvas for drawing the widget.
-	/// @return Pen
-	Pen acquire_pen();
-
 	/// Parent widget, at a time a widget can have only one parent.
 	Widget *parent = nullptr;
 	// Position relative to the parent and size of the widget are the same as
 	// that of the canvas, so we do not need to store them again.
 	/// Canvas on which the widget will be drawn.
 	Canvas canvas;
-	/// Absolute position on the screen
-	Point abs_position;
+	/// Minimum widget size
+	Point min_box_size;
+	/// Maximum widget size
+	Point max_box_size;
+
+	/// Keeps track of whether the drawing will be visible or not,
+	/// only valid after we start drawing. For debugging purposes only.
+	bool is_drawing_visible = false;
 };
 
 class Interactive : public Widget
@@ -145,7 +157,6 @@ protected:
 
 private:
 	bool is_disabled_ = false;
-	bool was_any_event_handeled = false;
 };
 } // namespace eggui
 
