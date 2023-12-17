@@ -7,50 +7,38 @@
 #include "raylib/raylib.h"
 #include "point.hxx"
 
-/// @brief Manages textures, is a singleton!
-class TextureManager
+class ClippingManager
 {
+	using Point = eggui::Point;
+
 public:
-	/// Tracks if the OpenGL context is available, if available then the
-	// texture can be loaded requested, otherwise defer it and can be loaded
-	// using `load_textures` when the OpenGL context becomes available.
-	bool does_gl_context_exist = false;
+	static ClippingManager &instance();
 
-	static TextureManager &instance();
+	/// @brief Pushes a new clip area, the resulting clip area is the
+	/// intersection of all the previous clip areas pushed.
+	/// @param start Area start position on screen.
+	/// @param size  Area size.
+	void push_clip_area(Point start, Point size);
+	/// @brief Restores the last clip area.
+	void pop_clip_area();
 
-	int create_texture(eggui::Point size);
-	void destroy_texture(int id);
-	void load_textures();
-	void unload_textures();
+	/// @brief Get current clip area on screen.
+	/// @return Clip area start and size.
+	/// @note If nothing is being clipped then returns screen area.
+	std::pair<Point, Point> get_current_clip_area();
 
-	/// @brief Start textured drawing mode for the texture provided.
-	/// @param texture_id Texture id
-	void push_texture(int texture_id);
-	/// @brief End textured drawing mode for the last texture pushed.
-	/// @return The texture_id popped.
-	int pop_texture();
-
-	RenderTexture &get(int id) { return textures[id].first; }
+	/// @brief Just calculate the resulting clipping area, do not apply it.
+	/// @param start Area start position on screen.
+	/// @param size  Area size.
+	/// @return Clip area start and size.
+	std::pair<Point, Point> calc_clip_area(Point start, Point size);
 
 private:
-	TextureManager();
+	ClippingManager() = default;
 
-	/// @brief Gets a free slot for the new texture, if none exists then
-	///        allocates a new free slot.
-	/// @return Texture ID
-	int get_free_slot();
-
-	enum class SlotState { Free, InUse, NeedsInit };
-
-	/// Textures for every widget created, indexed by texture_id.
-	/// The SlotState stores info about the state of the slot.
-	std::vector<std::pair<RenderTexture, SlotState>> textures;
-	std::vector<int> free_list;
-
-	// Since only one texture can be active at a time we maintain a list
-	// of textures that are currently used by pens.
-	// We only keep the last pushed texture active.
-	std::vector<int> active_textures;
+	/// Stores the clip area for each push operation for the purpose of
+	/// restoring them when `pop_clip_area` is called.
+	std::vector<std::pair<Point, Point>> clip_areas;
 };
 
 // TODO complete this

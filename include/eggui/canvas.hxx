@@ -1,6 +1,8 @@
 #ifndef CANVAS_HXX_INCLUDED
 #define CANVAS_HXX_INCLUDED
 
+#include <utility>
+
 #include "point.hxx"
 #include "graphics.hxx"
 
@@ -15,8 +17,9 @@ class Pen; // Forward declaration
 /// from the canvas and that pen should stay in the scope until the drawing is
 /// complete.
 ///
+/// Example:
 /// @code {.cpp}
-/// 	const Pen pen = canvas.acquire_pen(&parent_canvas);
+/// 	const Pen pen = canvas.acquire_pen();
 /// 	draw_circle(Point(50, 50), 21, RGBA(255, 0, 0));
 /// @endcode
 class Canvas
@@ -47,10 +50,13 @@ public:
 	}
 
 	/// @brief Acquire a pen for the canvas.
+	/// @param enable_clipping Enables draw region clipping.
 	/// @return Pen
 	/// @note Only one pen can be active per canvas.
-	Pen acquire_pen();
-	bool has_active_pen() { return active_pen_cnt != 0; }
+	Pen acquire_pen(bool enable_clipping = true);
+	/// @brief Check if a pen is active for the canvas.
+	/// @return boolean
+	bool has_active_pen() const { return active_pen_cnt != 0; }
 
 	/// @brief Set region to which drawing should be restricted to.
 	/// @param rect_start Region rectangle start.
@@ -61,17 +67,27 @@ public:
 	/// @param new_size New size for the canvas.
 	void set_size(Point new_size);
 
+	/// @brief Set postion of the canvas
+	/// @param new_pos New position.
 	void set_position(Point new_pos) { position = new_pos; }
-	Point get_position() const { return position; }
-	Point get_size() const { return size; }
+
+	/// @brief Get region of the canvas which will be drawn on the screen.
+	/// @return Pair represents a rectangle as position and size.
+	std::pair<Point, Point> get_draw_region()
+	{
+		return {region_start, region_size};
+	}
+
+	inline Point get_size() const { return size; }
+	inline Point get_position() const { return position; }
 
 private:
 	// There can be only one active pen per canvas.
-	int active_pen_cnt = 0;
+	int active_pen_cnt = 0; // Managed by Pen class
+
 	// Canvas size.
 	Point size;
 	// Canvas position.
-	// It is relative to the canvas from which the last pen was acquired.
 	Point position;
 
 	// Region of the canvas which should be drawn.
@@ -93,13 +109,23 @@ private:
 class Pen
 {
 public:
-	Pen(Canvas &canvas_);
+	Pen(Canvas &canvas_, bool is_clipping_);
 	~Pen();
 
 	Pen(const Pen &) = delete;
 	Pen(Pen &&pen)
 		: canvas(pen.canvas)
+		, is_clipping(pen.is_clipping)
+		, clip_start(pen.clip_start)
+		, clip_size(pen.clip_size)
 	{
+	}
+
+	/// @brief Gets clip region in which the pen can actually draw
+	/// @return Rectangle: position and size
+	std::pair<Point, Point> get_clip_region() const
+	{
+		return {clip_start, clip_size};
 	}
 
 	/// @brief Does absolutely nothing, its only purpose is to tell the
@@ -108,8 +134,12 @@ public:
 
 private:
 	Canvas &canvas;
-	/// Keeps track of the offset we are at.
-	Point offset;
+	bool is_clipping = true;
+
+	// Actual clip region produced by the intersection of previously pushed
+	// clip regions, calculated even if the pen is not clipping.
+	Point clip_start{};
+	Point clip_size{};
 };
 
 } // namespace eggui

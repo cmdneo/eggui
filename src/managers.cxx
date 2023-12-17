@@ -1,127 +1,88 @@
 #include <cassert>
+#include <algorithm>
 #include <memory>
-#include <ranges>
+#include <utility>
 
 #include "raylib/raylib.h"
 
 #include "point.hxx"
 #include "managers.hxx"
+#include "graphics.hxx"
 
+using std::max;
+using std::min;
+using std::pair;
 using std::unique_ptr;
 
-// Texture manager members
-//---------------------------------------------------------
-TextureManager::TextureManager()
+using namespace eggui;
+
+pair<Point, Point>
+find_intersection(pair<Point, Point> rect1, pair<Point, Point> rect2)
 {
-	textures.reserve(64);
-	active_textures.reserve(8);
+	// Normalized rectangles, where a <= a1 and b <= b1.
+	auto a = rect1.first;
+	auto b = rect2.first;
+	auto a1 = a + rect1.second;
+	auto b1 = b + rect2.second;
+
+	auto c = Point(max(a.x, b.x), max(a.y, b.y));
+	auto c1 = Point(min(a1.x, b1.x), min(a1.y, b1.y));
+	if (c1.x < c.x || c1.y < c.y)
+		c1 = c;
+
+	return pair(c, c1 - c);
 }
 
-TextureManager &TextureManager::instance()
+// Clipping manager members
+//---------------------------------------------------------
+ClippingManager &ClippingManager::instance()
 {
-	static unique_ptr<TextureManager> ptr(new TextureManager());
+	static unique_ptr<ClippingManager> ptr(new ClippingManager());
 	return *ptr;
 }
 
-int TextureManager::create_texture(eggui::Point size)
+void ClippingManager::push_clip_area(Point start, Point size)
 {
-	int id = get_free_slot();
+	auto new_area = calc_clip_area(start, size);
+	auto [pos, sz] = new_area;
 
-	if (does_gl_context_exist) {
-		auto tex = LoadRenderTexture(size.x, size.y);
-		textures[id] = {tex, SlotState::InUse};
-	} else {
-		// Store the info needed for initialization in the texture itself.
-		Texture tmp = {.width = size.x, .height = size.y};
-		textures[id] = {RenderTexture{.texture = tmp}, SlotState::NeedsInit};
-	}
+	// Remove the previous area, we restore it when this new area is removed.
+	if (!clip_areas.empty())
+		EndScissorMode();
 
-	return id;
+	BeginScissorMode(pos.x, pos.y, sz.x, sz.y);
+	clip_areas.push_back(new_area);
 }
 
-void TextureManager::destroy_texture(int id)
+void ClippingManager::pop_clip_area()
 {
-	assert(id < static_cast<int>(textures.size()));
-	assert(textures[id].second != SlotState::Free);
+	assert(!clip_areas.empty());
 
-	if (textures[id].second == SlotState::InUse)
-		UnloadRenderTexture(textures[id].first);
+	clip_areas.pop_back();
+	EndScissorMode();
 
-	// After we remove a texture we mark its slot free and track it,
-	// we never shrink the texture vector as that would mean moving rest of the
-	// textures, which would change their ID(which is the index).
-	textures[id].second = SlotState::Free;
-	free_list.push_back(id);
-}
-
-void TextureManager::load_textures()
-{
-	assert(does_gl_context_exist);
-
-	for (auto &[tex, state] : textures) {
-		if (state != SlotState::NeedsInit)
-			continue;
-
-		tex = LoadRenderTexture(tex.texture.width, tex.texture.height);
-		state = SlotState::InUse;
+	// If a previous clip area was present then restore that.
+	if (!clip_areas.empty()) {
+		auto [pos, sz] = clip_areas.back();
+		BeginScissorMode(pos.x, pos.y, sz.x, sz.y);
 	}
 }
 
-void TextureManager::unload_textures()
+pair<Point, Point> ClippingManager::get_current_clip_area()
 {
-	assert(does_gl_context_exist);
-
-	for (auto &[tex, state] : textures) {
-		if (state != SlotState::InUse)
-			continue;
-
-		UnloadRenderTexture(tex);
-		state = SlotState::NeedsInit;
-	}
+	if (clip_areas.empty())
+		return pair(Point(0, 0), get_window_size());
+	else
+		return clip_areas.back();
 }
 
-int TextureManager::get_free_slot()
+pair<Point, Point> ClippingManager::calc_clip_area(Point start, Point size)
 {
-	int id = -1;
-	if (!free_list.empty()) {
-		id = free_list.back();
-		free_list.pop_back();
-	} else {
-		id = textures.size();
-		textures.push_back(std::pair(RenderTexture{}, SlotState::Free));
-	}
+	auto new_area = pair(start, size);
+	if (!clip_areas.empty())
+		new_area = find_intersection(new_area, clip_areas.back());
 
-	assert(textures[id].second == SlotState::Free);
-
-	return id;
-}
-
-void TextureManager::push_texture(int texture_id)
-{
-	auto [tex, state] = textures[texture_id];
-	assert(state == SlotState::InUse);
-
-	// If any other texture active then replace it.
-	if (!active_textures.empty())
-		EndTextureMode();
-	active_textures.push_back(texture_id);
-	BeginTextureMode(tex);
-}
-
-int TextureManager::pop_texture()
-{
-	assert(!active_textures.empty());
-	assert(textures[active_textures.back()].second == SlotState::InUse);
-
-	EndTextureMode();
-	auto ret = active_textures.back();
-	active_textures.pop_back();
-
-	// If any other texture was active before then re-activate it.
-	if (!active_textures.empty())
-		BeginTextureMode(textures[active_textures.back()].first);
-
-	return ret;
+	return new_area;
 }
 
 // Font manager members
