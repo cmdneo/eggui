@@ -283,7 +283,7 @@ void Grid::draw_debug_impl()
 		start += Point(0, size.y);
 		if (row_gap != 0 && i != row_count - 1)
 			draw_rect(start, Point(get_size().x, row_gap), TRANS_PINK);
-}
+	}
 
 	// Draw the outer box over grid lines, since lines are drawn as rectangles.
 	Widget::draw_debug_impl();
@@ -307,12 +307,15 @@ void Grid::layout_children(Point size_hint)
 	size_hint.x = std::min(size_hint.x, get_max_size().x);
 	size_hint.y = std::min(size_hint.y, get_max_size().y);
 
-	// Expand if more space is available.
+	// Expand if more space is available
 	// If available space is less than the minimum space then do not shrink
 	// anything, just draw the widgets. Oveflowing figures will get clipped.
 	Point extra_size = size_hint - get_min_size();
-	double x_inc = std::max(0., 1. * extra_size.x / get_min_size().x);
-	double y_inc = std::max(0., 1. * extra_size.y / get_min_size().y);
+	// We only expand the cells, not the gaps.
+	Point gaps_size((col_count - 1) * col_gap, (row_count - 1) * row_gap);
+	Point gapless_size = get_min_size() - gaps_size;
+	double x_inc = std::max(0., 1. * extra_size.x / gapless_size.x);
+	double y_inc = std::max(0., 1. * extra_size.y / gapless_size.y);
 
 	// Calculate sizes of columns and rows
 	for (auto i = 0; i < col_count; ++i)

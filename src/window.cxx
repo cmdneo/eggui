@@ -75,6 +75,10 @@ void Window::update()
 		return resp;
 	};
 
+	Widget *hovered = nullptr;
+	if (root_container->collides_with_point(mpos))
+		hovered = notify(root_container.get(), EventType::IsInteractive);
+
 	// Detect if mouse released, clicked or dragged. It can only happen if
 	// mouse button was already pressed over some widget and that widget
 	// responded to the button press.
@@ -89,17 +93,13 @@ void Window::update()
 
 		// Register a click only if mouse button is released while the cursor is
 		// over the same widget, otherwise ignore the click.
-		if (mouse_down_over == hovering_over)
+		if (mouse_down_over == hovered)
 			notify(mouse_down_over, EventType::MouseClick);
 
 		notify(mouse_down_over, EventType::MouseReleased);
 		mouse_down_over = nullptr;
 		return;
 	}
-
-	Widget *hovered = nullptr;
-	if (root_container->collides_with_point(mpos))
-		hovered = notify(root_container.get(), EventType::IsInteractive);
 
 	// If a new widget(or none) is being hovered over then notify the
 	// older widget that it is no longer being hovered over.
