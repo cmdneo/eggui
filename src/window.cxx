@@ -26,11 +26,15 @@ void Window::main_loop(int width_hint, int height_hint)
 	SetTraceLogLevel(LOG_WARNING);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
 	InitWindow(size.x, size.y, title);
-	init_graphics();
 
-	EnableEventWaiting(); // Set sleep till a new event arrives
+	auto minsz = root_container->get_min_size();
+	auto maxsz = root_container->get_max_size();
+	SetWindowMinSize(minsz.x, minsz.y);
+	SetWindowMaxSize(maxsz.x, maxsz.y);
 	SetExitKey(KEY_NULL); // Do not exit on ESC
-	SetWindowMinSize(size.x, size.y);
+	EnableEventWaiting(); // Set sleep till a new event arrives
+
+	init_graphics();
 
 	while (1) {
 		update();
