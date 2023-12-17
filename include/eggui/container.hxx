@@ -56,8 +56,6 @@ public:
 	virtual void layout_children(Point size_hint) = 0;
 	/// @brief Calculate layout info but do not actually layout anything.
 	/// @return Minimum size needed for the container to prevent overflow.
-	/// @note A layout calculation is performed only when required,
-	///       that is, when at least one child has been added or removed.
 	virtual Point calc_layout_info() = 0;
 
 	void set_size(Point new_size) override;
@@ -66,6 +64,44 @@ protected:
 	// Generally a layout calculation needed only when a child is
 	// added or removed from the container.
 	bool needs_layout_calc = true;
+};
+
+class PaddedBox : public Container
+{
+public:
+	PaddedBox(
+		std::unique_ptr<Widget> child_, Fill fill = Fill::None,
+		Alignment h_align_ = Alignment::Center,
+		Alignment v_align_ = Alignment::Center
+	)
+		: child(std::move(child_))
+		, fill_mode(fill)
+		, h_align(h_align_)
+		, v_align(v_align_)
+	{
+	}
+
+	/// @brief Set minimum padding for each direction, if a value is negative
+	/// then the old padding for that direction is preserved.
+	void set_min_padding(int top, int bottom, int left, int right);
+	void layout_children(Point size_hint) override;
+	Point calc_layout_info() override;
+
+protected:
+	Widget *notify_impl(Event ev) override;
+	void draw_impl() override;
+	void draw_debug_impl() override;
+
+private:
+	std::unique_ptr<Widget> child;
+
+	Fill fill_mode;
+	Alignment h_align;
+	Alignment v_align;
+	int top_pad = 0;
+	int bottom_pad = 0;
+	int left_pad = 0;
+	int right_pad = 0;
 };
 
 class LinearBox final : public Container
@@ -84,7 +120,7 @@ public:
 	Widget *add_widget_end(std::unique_ptr<Widget> child);
 
 	void layout_children(Point avail_size) override;
-	Point calc_layout_info() override {}
+	Point calc_layout_info() override { return Point(); }
 
 protected:
 	Widget *notify_impl(Event ev) override;

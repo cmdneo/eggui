@@ -45,21 +45,19 @@ Point calc_align_offset(
 	);
 }
 
-/// @brief Calculates stretched size of the box within another box
-/// @param min_size Minimum size of the inner box
-/// @param max_size Maximum size of the inner box
-/// @param avail_size Size of the outer box
-/// @param fill Fill mode for stretching
-/// @return Calculated size
+/// @brief Calculates stretched size of the box within another box.
+/// @param min_size Minimum size of the inner box.
+/// @param max_size Maximum size of the inner box.
+/// @param avail_size Size of the outer box.
+/// @param fill Fill mode for stretching.
+/// @return Calculated size.
+/// For each dimension: if `size_avail < min_size` then returns `min_size`.
 Point calc_stretched_size(
 	Point min_size, Point max_size, Point avail_size, Fill fill
 )
 {
-	assert(min_size.x <= avail_size.x);
-	assert(min_size.y <= avail_size.y);
-
-	avail_size.x = std::min(max_size.x, avail_size.x);
-	avail_size.y = std::min(max_size.y, avail_size.y);
+	avail_size.x = std::clamp(avail_size.x, min_size.x, max_size.x);
+	avail_size.y = std::clamp(avail_size.y, min_size.y, max_size.y);
 
 	switch (fill) {
 	case Fill::StretchColumn:
@@ -76,10 +74,10 @@ Point calc_stretched_size(
 	return Point(0, 0);
 }
 
-/// @brief Calculates offsets of boxes for layout.
+/// @brief Calculates offsets of boxes for layout and puts them is `result`.
 /// @param sizes Length of each box.
 /// @param gap Gap between boxes along the length.
-/// @param result Resulting offsets of boxes from 0.
+/// @param result Result parameter: offsets of boxes from 0.
 /// @return Total length of the container containing the boxes.
 float calc_box_offsets(
 	const vector<float> &sizes, float gap, vector<float> &result
@@ -97,16 +95,93 @@ float calc_box_offsets(
 	return last_at;
 }
 
+/// @brief Calculate how much `size` should expand to fill the `size_avail`
+/// @param size Size of the box.
+/// @param flex_size Size wrt which expansion should be calculated.
+/// @param size_avail Size available to the box.
+/// @return Relative amount by which size should expand in x and y directions.
+/// For each dimension: if `size_avail < size` then returns 0.
+pair<double, double>
+calc_epansion_amount(Point size, Point flex_size, Point size_avail)
+{
+	auto extra = size_avail - size;
+	double x_inc = std::max(0., 1. * extra.x / flex_size.x);
+	double y_inc = std::max(0., 1. * extra.y / flex_size.y);
+
+	return pair(x_inc, y_inc);
+}
+
+void calc_layout_info_if_container(Widget &w)
+{
+	auto cont = dynamic_cast<Container *>(&w);
+	if (cont)
+		cont->calc_layout_info();
+}
+
 // Container members
 //---------------------------------------------------------
 void Container::set_size(Point new_size)
 {
-	// Size is set after we are done laying out the children
-	calc_layout_info();
+	if (needs_layout_calc)
+		calc_layout_info();
 	layout_children(new_size);
-	// if (size.x > new_size.x || size.y > new_size.y) {
-	// 	// TODO Warn that size is too small
-	// }
+}
+
+// PaddedBox members
+//---------------------------------------------------------
+void PaddedBox::set_min_padding(int top, int bottom, int left, int right)
+{
+	left_pad = left < 0 ? left_pad : left;
+	right_pad = right < 0 ? right_pad : right;
+	top_pad = top < 0 ? top_pad : top;
+	bottom_pad = bottom < 0 ? bottom_pad : bottom;
+}
+
+void PaddedBox::layout_children(Point size_hint)
+{
+	assert(!needs_layout_calc);
+
+	Point padding(left_pad + right_pad, top_pad + bottom_pad);
+	auto avail_size = size_hint - padding;
+	auto child_size = calc_stretched_size(
+		child->get_min_size(), child->get_max_size(), avail_size, fill_mode
+	);
+
+	auto [x_inc, y_inc] =
+		calc_epansion_amount(child_size + padding, padding, size_hint);
+	padding.x += x_inc * padding.x;
+	padding.y += y_inc * padding.y;
+	auto cont_size = padding + child_size;
+
+	// Enforce minimum padding from all directions.
+	Point pos(left_pad * (1. + x_inc), top_pad * (1. + y_inc));
+	pos += calc_align_offset(cont_size - padding, child_size, h_align, v_align);
+
+	child->set_position(pos);
+	child->set_size(child_size);
+	Widget::set_size(cont_size);
+}
+
+Point PaddedBox::calc_layout_info()
+{
+	needs_layout_calc = false;
+	calc_layout_info_if_container(*child);
+
+	// PaddedBox has no maximum size, it can grow as much as it is grown.
+	Point padding(left_pad + right_pad, top_pad + bottom_pad);
+	set_min_size(child->get_min_size() + padding);
+	set_max_size(UNLIMITED_MAX_SIZE);
+	return get_min_size();
+}
+
+Widget *PaddedBox::notify_impl(Event ev) { return child->notify(ev); }
+
+void PaddedBox::draw_impl() { child->draw(); }
+
+void PaddedBox::draw_debug_impl()
+{
+	Widget::draw_debug_impl();
+	child->draw_debug();
 }
 
 // LinearBox members
@@ -137,7 +212,6 @@ void LinearBox::layout_children(Point)
 
 	// Get x or y of the point depending on the orientation we are in.
 	// In horizontal we want height and in vertical we want width.
-
 	std::function<int(Point)> get_ocoord;
 	if (orientation == Orientation::Horizontal)
 		get_ocoord = [](Point pt) { return pt.y; };
@@ -310,14 +384,12 @@ void Grid::layout_children(Point size_hint)
 	size_hint.y = std::min(size_hint.y, get_max_size().y);
 
 	// Expand if more space is available
-	// If available space is less than the minimum space then do not shrink
-	// anything, just draw the widgets. Oveflowing figures will get clipped.
-	Point extra_size = size_hint - get_min_size();
+	// If available space is less than the minimum space then do not shrink.
 	// We only expand the cells, not the gaps.
+	auto min_sz = get_min_size();
 	Point gaps_size((col_count - 1) * col_gap, (row_count - 1) * row_gap);
-	Point gapless_size = get_min_size() - gaps_size;
-	double x_inc = std::max(0., 1. * extra_size.x / gapless_size.x);
-	double y_inc = std::max(0., 1. * extra_size.y / gapless_size.y);
+	Point gapless_size = min_sz - gaps_size;
+	auto [x_inc, y_inc] = calc_epansion_amount(min_sz, gapless_size, size_hint);
 
 	// Calculate sizes of columns and rows
 	for (auto i = 0; i < col_count; ++i)
@@ -361,20 +433,14 @@ void Grid::layout_children(Point size_hint)
 
 Point Grid::calc_layout_info()
 {
-	if (!needs_layout_calc)
-		return get_min_size();
 	needs_layout_calc = false;
-
 	alloc_row_col_data();
 
 	// We do layout calculation for inner containers but do not actually
 	// layout their children, since doing that requires size available
 	// for the container which we not have right now.
-	for (auto &c : children) {
-		auto cont = dynamic_cast<Container *>(c.widget.get());
-		if (cont)
-			cont->calc_layout_info();
-	}
+	for (auto &c : children)
+		calc_layout_info_if_container(*c.widget);
 
 	// Calculate minimum and maximum size of each row and column.
 	// If a widget spans multiple cells then, we also need to consider the
@@ -387,8 +453,8 @@ Point Grid::calc_layout_info()
 
 		Point gap(col_gap, row_gap);
 		auto gap_taken = mul_components(c.span - Point(1, 1), gap);
-		max_size -= gap_taken;
 		min_size -= gap_taken;
+		max_size -= gap_taken;
 
 		float cell_w_min = 1. * min_size.x / c.span.x;
 		float cell_h_min = 1. * min_size.y / c.span.y;

@@ -1,6 +1,7 @@
 #ifndef WIDGET_HXX_INCLUDED
 #define WIDGET_HXX_INCLUDED
 
+#include <climits>
 #include <vector>
 #include <memory>
 #include <utility>
@@ -158,6 +159,11 @@ protected:
 private:
 	bool is_disabled_ = false;
 };
+
+/// Represents an arbtriararily growable widget.
+// Using INT_MAX/2 ensures no overflow and a large enough size.
+constexpr Point UNLIMITED_MAX_SIZE(INT_MAX / 2, INT_MAX / 2);
+
 } // namespace eggui
 
 #endif
