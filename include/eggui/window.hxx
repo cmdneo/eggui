@@ -46,7 +46,8 @@ private:
 	std::function<bool()> close_action = []() { return true; };
 
 	bool debug_borders_enabled = false;
-	bool needs_redraw = true;
+	// Only draw this many times as set.
+	int draw_cnt = 1;
 
 	// If mouse is down over a widget then no event is sent to others.
 	Widget *mouse_down_over = nullptr;

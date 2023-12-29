@@ -27,10 +27,12 @@ void Window::main_loop(int width_hint, int height_hint)
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
 	InitWindow(size.x, size.y, title);
 
+	// Set minimum and maximum sizes
 	auto minsz = root_container->get_min_size();
 	auto maxsz = root_container->get_max_size();
 	SetWindowMinSize(minsz.x, minsz.y);
 	SetWindowMaxSize(maxsz.x, maxsz.y);
+
 	SetExitKey(KEY_NULL); // Do not exit on ESC
 	EnableEventWaiting(); // Set sleep till a new event arrives
 
@@ -39,10 +41,14 @@ void Window::main_loop(int width_hint, int height_hint)
 	while (1) {
 		update();
 
-		if (needs_redraw)
-			draw();
-		else
+		if (draw_cnt > 0) {
+			while (draw_cnt-- > 0)
+				draw();
+		} else {
+			// EndDrawing in draw() polls for events itself, therefore,
+			// explicitly poll for events only when nothing is drawn.
 			PollInputEvents();
+		}
 
 		// This needs to be placed after we poll for events to work properly.
 		if (WindowShouldClose() && close_action())
@@ -56,15 +62,20 @@ void Window::main_loop(int width_hint, int height_hint)
 void Window::update()
 {
 	if (IsWindowResized()) {
-		needs_redraw = true;
+		// HACK - We draw twice when resized.
+		// Drawing only once causes small black square shaped boxes to appear
+		// at top-right and bottom-left corners and the the drawing above/below
+		// those boxes shift just above/below the boxes.
+		draw_cnt = 2;
 		root_container->set_size(Point(GetScreenWidth(), GetScreenHeight()));
+		SetWindowSize(GetScreenWidth(), GetScreenHeight());
 		return;
 	}
 
 #ifndef NDEBUG
 	if (IsKeyPressed(KEY_ESCAPE)) {
 		debug_borders_enabled = !debug_borders_enabled;
-		needs_redraw = true;
+		draw_cnt = 1;
 	}
 #endif
 
@@ -75,7 +86,7 @@ void Window::update()
 		auto ev = Event(type, mpos);
 		ev.shared_pt_ = pd;
 		auto resp = w->notify(ev);
-		needs_redraw = resp ? true : needs_redraw;
+		draw_cnt = resp ? true : draw_cnt;
 		return resp;
 	};
 
@@ -137,8 +148,6 @@ void Window::update()
 
 void Window::draw()
 {
-	needs_redraw = false;
-
 	BeginDrawing();
 
 	clear_background();
