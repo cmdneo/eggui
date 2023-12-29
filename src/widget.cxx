@@ -60,7 +60,7 @@ void Widget::draw_debug_impl()
 
 	static char buffer[256];
 	auto pos = calc_abs_position();
-	snprintf(buffer, sizeof buffer, "(%d, %d)", pos.x, pos.y);
+	snprintf(buffer, sizeof buffer, "(%.1f, %.1f)", pos.x, pos.y);
 
 	RGBA color = RGBA(255, 128, 0);
 	if (!is_drawing_visible)

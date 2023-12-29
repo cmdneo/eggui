@@ -1,18 +1,20 @@
 #ifndef POINT_HXX_INCLUDED
 #define POINT_HXX_INCLUDED
 
+#include <cmath>
+
 namespace eggui
 {
 struct Point {
 	constexpr Point() = default;
 
-	constexpr Point(int x_coord, int y_coord)
+	constexpr Point(float x_coord, float y_coord)
 		: x(x_coord)
 		, y(y_coord)
 	{
 	}
 
-	int min_coord() const { return x < y ? x : y; }
+	float min_coord() const { return x < y ? x : y; }
 
 	Point &operator+=(Point other)
 	{
@@ -28,7 +30,8 @@ struct Point {
 		return *this;
 	}
 
-	int operator[](int i) const { return i == 0 ? x : y; }
+	float &operator[](float i) { return i == 0 ? x : y; }
+	const float &operator[](float i) const { return i == 0 ? x : y; }
 
 	bool is_in_box(Point box_pos, Point box_size)
 	{
@@ -39,11 +42,9 @@ struct Point {
 		return x >= start.x && x < end.x && y >= start.y && y < end.y;
 	}
 
-	int x = 0;
-	int y = 0;
+	float x = 0;
+	float y = 0;
 };
-
-inline bool operator==(Point l, Point r) { return l.x == r.x && l.y == r.y; }
 
 inline Point operator+(Point l, Point r) { return (l += r); }
 inline Point operator-(Point l, Point r) { return (l -= r); }
@@ -51,10 +52,15 @@ inline Point operator-(Point l, Point r) { return (l -= r); }
 inline Point operator+(Point p) { return p; }
 inline Point operator-(Point p) { return Point(-p.x, -p.y); }
 
-inline Point operator*(Point p, int n) { return Point(p.x * n, p.y * n); }
-inline Point operator*(int n, Point p) { return p * n; }
+inline Point operator*(Point p, float n) { return Point(p.x * n, p.y * n); }
+inline Point operator*(float n, Point p) { return p * n; }
 
-inline Point operator/(Point p, int n) { return Point(p.x / n, p.y / n); }
+inline Point operator/(Point p, float n) { return Point(p.x / n, p.y / n); }
+
+inline bool almost_eq(Point p, Point q)
+{
+	return std::abs(p.x - q.x) < 10e-3 && std::abs(p.y - q.y) < 10e-3;
+}
 
 inline Point mul_components(Point l, Point r)
 {
@@ -63,7 +69,17 @@ inline Point mul_components(Point l, Point r)
 
 inline Point max_components(Point a, Point b)
 {
-	return Point(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y);
+	return Point(std::max(a.x, b.x), std::max(a.y, b.y));
+}
+
+inline Point min_components(Point a, Point b)
+{
+	return Point(std::min(a.x, b.x), std::min(a.y, b.y));
+}
+
+inline Point clamp_components(Point pt, Point min_pt, Point max_pt)
+{
+	return min_components(max_components(pt, min_pt), max_pt);
 }
 
 inline bool check_box_collision(Point p, Point psize, Point q, Point qsize)
