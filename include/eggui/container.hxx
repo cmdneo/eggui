@@ -4,49 +4,19 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include <deque>
 #include <utility>
+#include <typeinfo>
 
 #include "widget.hxx"
 #include "graphics.hxx"
 
 namespace eggui
 {
-enum class Alignment {
-	Start,
-	Center,
-	End,
-};
-
-enum class Orientation {
-	Horizontal,
-	Vertical,
-};
-
-enum class Fill : std::uint8_t {
-	None,
-	StretchRow,
-	StretchColumn,
-	Stretch,
-};
-
-// Direction can be used as bit flags extracting by its underying integer.
-enum class Direction : std::uint8_t {
-	Top = 1,
-	Bottom = 1 << 1,
-	Left = 1 << 2,
-	Right = 1 << 3,
-	TopLeft = Top | Left,
-	TopRight = Top | Right,
-	BottomLeft = Bottom | Left,
-	BottomRight = Bottom | Right,
-};
-
 class Container : public Widget
 {
 public:
-	Container()
-		: Widget(0, 0, 0, 0)
+	Container(int w = 0, int h = 0)
+		: Widget(0, 0, w, h)
 	{
 	}
 
@@ -62,22 +32,15 @@ public:
 
 protected:
 	// Generally a layout calculation needed only when a child is
-	// added or removed from the container.
-	bool needs_layout_calc = true;
+	// added or removed from the container or layout config is changed.
+	// bool needs_layout_calc = true;
 };
 
 class PaddedBox : public Container
 {
 public:
-	PaddedBox(
-		std::unique_ptr<Widget> child_, Fill fill = Fill::None,
-		Alignment h_align_ = Alignment::Center,
-		Alignment v_align_ = Alignment::Center
-	)
+	PaddedBox(std::unique_ptr<Widget> child_)
 		: child(std::move(child_))
-		, fill_mode(fill)
-		, h_align(h_align_)
-		, v_align(v_align_)
 	{
 	}
 
@@ -95,62 +58,71 @@ protected:
 private:
 	std::unique_ptr<Widget> child;
 
-	Fill fill_mode;
-	Alignment h_align;
-	Alignment v_align;
 	int top_pad = 0;
 	int bottom_pad = 0;
 	int left_pad = 0;
 	int right_pad = 0;
+
+	// Expand inner widget.
+	Fill fill_mode = Fill::Stretch;
 };
 
 class LinearBox final : public Container
 {
 public:
-	using Container::Container;
-
 	LinearBox(Orientation orient)
-		: orientation(orient)
+		: Container(0, 0)
+		, orientation(orient)
 	{
 	}
 
+	/// @brief Expand the box to fill the available space along the orientation.
+	/// @param can_expand Value
+	void set_expand_to_fill(bool can_expand) { expand_to_fill = can_expand; }
 	void set_gap(int gap) { item_gap = gap; }
 
 	Widget *add_widget_start(std::unique_ptr<Widget> child);
 	Widget *add_widget_end(std::unique_ptr<Widget> child);
 
 	void layout_children(Point avail_size) override;
-	Point calc_layout_info() override { return Point(); }
+	Point calc_layout_info() override;
 
 protected:
 	Widget *notify_impl(Event ev) override;
-	void set_position(Point new_pos) override;
 	void draw_debug_impl() override;
 	void draw_impl() override;
 
 private:
-	/// @brief Get x or y of a point depending on the orientation.
-	/// @param pt
-	/// @return
-	// inline int get_ocoord(Point pt) {}
+	/// @brief Calculate gap size in both components.
+	/// @return Gap size.
+	Point calc_gap_size() const;
 
-	// Deque because we will need to add and remove elements from both ends.
-	// Children pushed to start, first element is placed at the start.
-	std::deque<std::unique_ptr<Widget>> start_children;
-	// Children pushed to end, last element is placed at the end.
-	std::deque<std::unique_ptr<Widget>> end_children;
+	struct Child {
+		std::unique_ptr<Widget> widget;
+		Alignment align;
+		Fill fill;
+	};
+
+	// Children pushed to start, first element is placed at start.
+	std::vector<Child> start_children;
+	// Children pushed to end, first element is placed at the end.
+	std::vector<Child> end_children;
 
 	// Layout orientation: row or column.
 	Orientation orientation = Orientation::Horizontal;
-	// Meaning of the below three depend on orientation.
-	// Box relative position parallel to orientation from where the cell starts.
+	// Meaning of the below depend on orientation.
+	// Relative position of cells parallel to orientation.
 	std::vector<float> cell_offsets;
-	// Size of each cell in the parallel to orientation.
+	// Length of each cell along the orientation.
 	std::vector<float> cell_sizes;
-	// Size of every cell perpendicular to orientation.
-	int max_cell_size;
-
+	// Minimum and maximum sizes for each cell parallel to orientation.
+	std::vector<float> cell_max_sizes;
+	std::vector<float> cell_min_sizes;
+	// Gap between each item along the orientation.
 	int item_gap = 0;
+
+	// Expand the box in the along the orientation direction to fill the space.
+	bool expand_to_fill = false;
 };
 
 class Grid final : public Container
@@ -167,11 +139,10 @@ public:
 	/// @param stick Sticky direction
 	/// @param column_span Default=1
 	/// @param row_span Default=1
-	/// @param fill Enable/disable stretch to fill, default=None.
 	/// @return Pointer to the child if added, otherwise nullptr.
 	Widget *add_widget_beside(
 		std::unique_ptr<Widget> child, const Widget *beside, Direction stick,
-		int column_span = 1, int row_span = 1, Fill fill = Fill::None
+		int column_span = 1, int row_span = 1
 	);
 
 	// TODO Return something else other than the child added??
@@ -181,11 +152,10 @@ public:
 	/// @param row Start row
 	/// @param column_span Default=1
 	/// @param row_span Default=1
-	/// @param fill Enable/disable stretch to fill, default=None.
 	/// @return Pointer to the child if added, otherwise nullptr.
 	Widget *add_widget(
 		std::unique_ptr<Widget> child, int column, int row, int column_span = 1,
-		int row_span = 1, Fill fill = Fill::None
+		int row_span = 1
 	);
 
 	void layout_children(Point avail_size) override;
@@ -229,6 +199,20 @@ private:
 	int row_gap = 0;
 	int col_gap = 0;
 };
+
+inline void calc_layout_info_if_container(Widget &w)
+{
+	auto cont = dynamic_cast<Container *>(&w);
+	if (cont)
+		cont->calc_layout_info();
+}
+
+inline void layout_children_if_container(Widget &w, Point size_hint)
+{
+	auto cont = dynamic_cast<Container *>(&w);
+	if (cont)
+		cont->layout_children(size_hint);
+}
 
 } // namespace eggui
 

@@ -1,7 +1,6 @@
 #ifndef WIDGET_HXX_INCLUDED
 #define WIDGET_HXX_INCLUDED
 
-#include <climits>
 #include <vector>
 #include <memory>
 #include <utility>
@@ -38,7 +37,7 @@ public:
 	inline Widget *get_parent() const { return parent; }
 
 	/// @brief Update size re-layout its children(if any) as per its new size.
-	/// @param new_size  New size
+	/// @param new_size New size
 	virtual void set_size(Point new_size);
 
 	void set_min_size(Point size) { min_box_size = size; }
@@ -160,9 +159,41 @@ private:
 	bool is_disabled_ = false;
 };
 
+// Types for configuring layout and drawing
+//---------------------------------------------------------
+enum class Alignment {
+	Start,
+	Center,
+	End,
+};
+
+enum class Orientation {
+	Horizontal = 0,
+	Vertical = 1,
+};
+
+enum class Fill {
+	None,
+	StretchRow,
+	StretchColumn,
+	Stretch,
+};
+
+// Direction can be used as bit flags extracting by its underying integer.
+enum class Direction : std::uint8_t {
+	Top = 1,
+	Bottom = 1 << 1,
+	Left = 1 << 2,
+	Right = 1 << 3,
+	TopLeft = Top | Left,
+	TopRight = Top | Right,
+	BottomLeft = Bottom | Left,
+	BottomRight = Bottom | Right,
+};
+
 /// Represents an arbtriararily growable widget.
-// Using INT_MAX/2 ensures no overflow and a large enough size.
-constexpr Point UNLIMITED_MAX_SIZE(INT_MAX / 2, INT_MAX / 2);
+// Using a large value ensures no overflow and a large enough size.
+constexpr Point UNLIMITED_MAX_SIZE(10e6, 10e8);
 
 } // namespace eggui
 
