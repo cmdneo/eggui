@@ -40,6 +40,9 @@ private:
 	void update();
 	/// @brief Draw the window
 	void draw();
+	/// @brief Layout the widgets.
+	/// @param size Size of the window for layout.
+	void layout(Point size);
 
 	const char *title = "EGGUI - :)";
 	std::unique_ptr<Container> root_container;

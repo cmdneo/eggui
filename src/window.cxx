@@ -9,6 +9,8 @@
 
 using namespace eggui;
 
+constexpr int DEFAULT_UI_FPS = 30;
+
 inline Point vec2_to_point(Vector2 v) { return Point(v.x, v.y); };
 
 void Window::main_loop(int width_hint, int height_hint)
@@ -18,14 +20,15 @@ void Window::main_loop(int width_hint, int height_hint)
 	//     A widget acknowledges responding to an event we sent to it.
 	//     State of the window changes.
 
-	root_container->set_position(Point(0, 0));
-	root_container->calc_layout_info();
-	root_container->layout_children(Point(width_hint, height_hint));
+	layout(Point(width_hint, height_hint));
 	auto size = root_container->get_size();
 
 	SetTraceLogLevel(LOG_WARNING);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
 	InitWindow(size.x, size.y, title);
+
+	if (!IsWindowState(FLAG_VSYNC_HINT))
+		SetTargetFPS(DEFAULT_UI_FPS);
 
 	// Set minimum and maximum sizes
 	auto minsz = root_container->get_min_size();
@@ -38,21 +41,15 @@ void Window::main_loop(int width_hint, int height_hint)
 
 	init_graphics();
 
-	while (1) {
-		update();
-
-		if (draw_cnt > 0) {
-			while (draw_cnt-- > 0)
-				draw();
-		} else {
-			// EndDrawing in draw() polls for events itself, therefore,
-			// explicitly poll for events only when nothing is drawn.
+	while (!(WindowShouldClose() && close_action())) {
+		// Poll for events manually if nothing is drawn, since
+		// when something is drawn events are polled automatically.
+		if (draw_cnt-- > 0)
+			draw();
+		else
 			PollInputEvents();
-		}
 
-		// This needs to be placed after we poll for events to work properly.
-		if (WindowShouldClose() && close_action())
-			break;
+		update();
 	}
 
 	deinit_graphics();
@@ -62,13 +59,7 @@ void Window::main_loop(int width_hint, int height_hint)
 void Window::update()
 {
 	if (IsWindowResized()) {
-		// HACK - We draw twice when resized.
-		// Drawing only once causes small black square shaped boxes to appear
-		// at top-right and bottom-left corners and the the drawing above/below
-		// those boxes shift just above/below the boxes.
-		draw_cnt = 2;
-		root_container->set_size(Point(GetScreenWidth(), GetScreenHeight()));
-		SetWindowSize(GetScreenWidth(), GetScreenHeight());
+		layout(Point(GetScreenWidth(), GetScreenHeight()));
 		return;
 	}
 
@@ -157,4 +148,15 @@ void Window::draw()
 		root_container->draw_debug();
 
 	EndDrawing();
+}
+
+void Window::layout(Point size)
+{
+	// HACK - We draw twice when resized.
+	// Drawing only once causes small black square shaped boxes to appear
+	// at top-right and bottom-left corners and the drawing of that part to
+	// be shifted. Along with that the resize does not work properly.
+	draw_cnt = 2;
+	root_container->set_size(size);
+	root_container->set_position(Point(0, 0));
 }
