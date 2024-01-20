@@ -181,8 +181,10 @@ void LinearBox::layout_children(Point size_hint)
 
 	int last_at = calc_box_offsets(cell_sizes, item_gap, cell_offsets);
 
-	// Push end children to the end by creating a space in between if space is
-	// left at the end due to expansion of the box.
+	// If the box still has space left after packing all the children then,
+	// put that space between start and end children. Thereby start children
+	// are at top/left and end children at bottom/right for orientation
+	// vertical/horizontal.
 	if (last_at < size_hint[idx] && !end_children.empty()) {
 		auto len_extra = size_hint[idx] - last_at;
 		ranges::for_each(

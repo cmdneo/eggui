@@ -5,6 +5,7 @@
 
 using eggui::RGBA;
 
+constexpr float ELEMENT_ROUNDNESS = 0.2;
 constexpr int SCROLL_BAR_WIDTH = 10;
 constexpr int SLIDER_LENGTH = 30;
 constexpr int SCROLL_BAR_ARROW_SIZE = SCROLL_BAR_WIDTH;

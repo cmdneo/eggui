@@ -5,6 +5,8 @@
 #include <ranges>
 #include <utility>
 
+#define GRAPHICS_API_OPENGL_33
+
 #include "raylib/raylib.h"
 #include "raylib/rlgl.h"
 
@@ -17,7 +19,7 @@
 using namespace eggui;
 
 /// Font size in pixels for FontSize variants, indexed by FontSize.
-constexpr int FONT_PX_SIZES[FONT_SIZE_COUNT] = {18, 24, 32, 42, 56};
+constexpr int FONT_PX_SIZES[FONT_SIZE_COUNT] = {14, 18, 24, 32, 42};
 
 /// Font glyphs need to be rendered for each font size, indexed by FontSize.
 /// Since we load only a fixed number of fonts, we dont really need manager for it.

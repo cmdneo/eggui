@@ -17,6 +17,13 @@ void Widget::set_size(Point new_size)
 	canvas.set_size(new_size);
 }
 
+void Widget::set_all_sizes(Point size)
+{
+	set_max_size(size);
+	set_min_size(size);
+	set_size(size);
+}
+
 void Widget::set_position(Point new_pos) { canvas.set_position(new_pos); }
 
 Point Widget::calc_abs_position() const

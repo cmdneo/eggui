@@ -43,6 +43,10 @@ public:
 	void set_min_size(Point size) { min_box_size = size; }
 	void set_max_size(Point size) { max_box_size = size; }
 
+	/// @brief Set min, max and current size.
+	/// @param size New size
+	void set_all_sizes(Point size);
+
 	/// @brief Set parent of the widget.
 	/// @param w Parent widget, it is generally a container.
 	void set_parent(Widget *w) { parent = w; }
@@ -157,6 +161,10 @@ protected:
 
 private:
 	bool is_disabled_ = false;
+};
+
+class Animatable : public Widget
+{
 };
 
 // Types for configuring layout and drawing
