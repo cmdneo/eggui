@@ -30,7 +30,7 @@ void Container::set_size(Point new_size)
 
 // PaddedBox members
 //---------------------------------------------------------
-void PaddedBox::set_min_padding(int top, int bottom, int left, int right)
+void PaddedBox::set_padding(int top, int bottom, int left, int right)
 {
 	left_pad = left < 0 ? left_pad : left;
 	right_pad = right < 0 ? right_pad : right;
@@ -88,9 +88,8 @@ Widget *LinearBox::add_widget_start(unique_ptr<Widget> child)
 
 	start_children.push_back(Child{
 		.widget = std::move(child),
-		// By defautl align to center
 		.align = Alignment::Center,
-		.fill = Fill::Stretch,
+		.fill = Fill::RowNColumn,
 	});
 
 	return start_children.back().widget.get();
@@ -103,9 +102,8 @@ Widget *LinearBox::add_widget_end(unique_ptr<Widget> child)
 
 	end_children.push_back(Child{
 		.widget = std::move(child),
-		// By defautl align to center
 		.align = Alignment::Center,
-		.fill = Fill::Stretch,
+		.fill = Fill::RowNColumn,
 	});
 
 	return end_children.back().widget.get();
@@ -194,18 +192,19 @@ void LinearBox::layout_children(Point size_hint)
 	}
 
 	// Calculates and set child position and size.
-	auto calc_size_n_pos = [=, this](Child &c, int w_index) {
+	auto calc_size_n_pos = [=, this](Child &c, int cell_index) {
 		Widget &w = *c.widget;
 		Point avail_size;
-		avail_size[idx] = cell_sizes[w_index];
+		avail_size[idx] = cell_sizes[cell_index];
 		avail_size[1 - idx] = size_hint[1 - idx];
+
 		auto size = calc_stretched_size(
 			w.get_min_size(), w.get_max_size(), avail_size, c.fill
 		);
 		w.set_size(size);
 
 		Point pos(0, 0);
-		pos[idx] = cell_offsets[w_index];
+		pos[idx] = cell_offsets[cell_index];
 		pos += calc_align_offset(w.get_size(), avail_size, c.align, c.align);
 		w.set_position(pos);
 	};
@@ -227,6 +226,7 @@ Point LinearBox::calc_layout_info()
 
 	const int idx = static_cast<int>(orientation);
 
+	// Calculates size info for each widget
 	auto calc_sizes = [&, this, idx](auto children_view) {
 		for (auto &c : children_view) {
 			calc_layout_info_if_container(*c.widget);
@@ -242,8 +242,8 @@ Point LinearBox::calc_layout_info()
 	calc_sizes(start_children | views::all);
 	calc_sizes(end_children | views::reverse);
 
-	int min_len = calc_gapped_length(cell_min_sizes, item_gap);
-	int max_len = calc_gapped_length(cell_max_sizes, item_gap);
+	int min_len = calc_length_with_gaps(cell_min_sizes, item_gap);
+	int max_len = calc_length_with_gaps(cell_max_sizes, item_gap);
 
 	if (expand_to_fill)
 		max_len = UNLIMITED_MAX_SIZE.x;
@@ -341,7 +341,7 @@ Widget *Grid::add_widget(
 		.span = span,
 		.h_align = Alignment::Center,
 		.v_align = Alignment::Center,
-		.fill = Fill::Stretch,
+		.fill = Fill::RowNColumn,
 	});
 
 	return ret_ptr;
@@ -492,12 +492,12 @@ Point Grid::calc_layout_info()
 	}
 
 	Point min_size(
-		calc_gapped_length(col_min_sizes, col_gap),
-		calc_gapped_length(row_min_sizes, row_gap)
+		calc_length_with_gaps(col_min_sizes, col_gap),
+		calc_length_with_gaps(row_min_sizes, row_gap)
 	);
 	Point max_size(
-		calc_gapped_length(col_max_sizes, col_gap),
-		calc_gapped_length(row_max_sizes, row_gap)
+		calc_length_with_gaps(col_max_sizes, col_gap),
+		calc_length_with_gaps(row_max_sizes, row_gap)
 	);
 
 	set_min_size(min_size);

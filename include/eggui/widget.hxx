@@ -30,18 +30,22 @@ public:
 
 	virtual ~Widget() = default;
 
-	inline Point get_position() const { return canvas.get_position(); }
-	inline Point get_size() const { return canvas.get_size(); }
-	inline Point get_min_size() const { return min_box_size; }
-	inline Point get_max_size() const { return max_box_size; }
-	inline Widget *get_parent() const { return parent; }
-
 	/// @brief Update size re-layout its children(if any) as per its new size.
 	/// @param new_size New size
 	virtual void set_size(Point new_size);
+	inline Point get_size() const { return canvas.get_size(); }
 
-	void set_min_size(Point size) { min_box_size = size; }
-	void set_max_size(Point size) { max_box_size = size; }
+	inline void set_min_size(Point size) { min_box_size = size; }
+	inline Point get_min_size() const { return min_box_size; }
+
+	inline void set_max_size(Point size) { max_box_size = size; }
+	inline Point get_max_size() const { return max_box_size; }
+
+	// TODO Use preferred size where applicable instead of using minimum size.
+	/// @brief Set preferred size, by default preferred size is just min_size.
+	/// @param size Preferred size.
+	virtual void set_preffered_size(Point size) { set_min_size(size); }
+	virtual Point get_preffered_size() const { return get_min_size(); }
 
 	/// @brief Set min, max and current size.
 	/// @param size New size
@@ -49,11 +53,13 @@ public:
 
 	/// @brief Set parent of the widget.
 	/// @param w Parent widget, it is generally a container.
-	void set_parent(Widget *w) { parent = w; }
+	inline void set_parent(Widget *w) { parent = w; }
+	inline Widget *get_parent() const { return parent; }
 
 	/// @brief Move the widget along with its children
 	/// @param new_pos New position
 	virtual void set_position(Point new_pos);
+	inline Point get_position() const { return canvas.get_position(); }
 
 	void set_xpos(int x) { set_position(Point(x, get_position().y)); }
 	void set_ypos(int y) { set_position(Point(get_position().x, y)); }
@@ -66,7 +72,7 @@ public:
 		return cursor.is_in_box(get_position(), get_size());
 	}
 
-	/// @brief Calculates the absolute position of the widgte on the screen.
+	/// @brief Calculates the absolute position of the widget on the screen.
 	/// @return Point
 	Point calc_abs_position() const;
 
@@ -182,9 +188,9 @@ enum class Orientation {
 
 enum class Fill {
 	None,
-	StretchRow,
-	StretchColumn,
-	Stretch,
+	Row,
+	Column,
+	RowNColumn,
 };
 
 // Direction can be used as bit flags extracting by its underying integer.
@@ -199,9 +205,10 @@ enum class Direction : std::uint8_t {
 	BottomRight = Bottom | Right,
 };
 
-/// Represents an arbtriararily growable widget.
-// Using a large value ensures no overflow and a large enough size.
-constexpr Point UNLIMITED_MAX_SIZE(10e6, 10e8);
+/// Represents size for an arbtriararily growable widget.
+// Using a large enough value but not the maximum ensures no overflow when
+// doing arithmetic with it, and a large enough size for all screens.
+constexpr Point UNLIMITED_MAX_SIZE(1e7, 1e7);
 
 } // namespace eggui
 

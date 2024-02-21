@@ -5,7 +5,6 @@
 #include "theme.hxx"
 #include "container.hxx"
 #include "graphics.hxx"
-#include "roboto_mono.bin.h"
 
 using namespace eggui;
 
@@ -30,11 +29,7 @@ void Window::main_loop(int width_hint, int height_hint)
 	if (!IsWindowState(FLAG_VSYNC_HINT))
 		SetTargetFPS(DEFAULT_UI_FPS);
 
-	// Set minimum and maximum sizes
-	auto minsz = root_container->get_min_size();
-	auto maxsz = root_container->get_max_size();
-	SetWindowMinSize(minsz.x, minsz.y);
-	SetWindowMaxSize(maxsz.x, maxsz.y);
+	set_resize_limits();
 
 	SetExitKey(KEY_NULL); // Do not exit on ESC
 	EnableEventWaiting(); // Set sleep till a new event arrives
@@ -60,6 +55,7 @@ void Window::update()
 {
 	if (IsWindowResized()) {
 		layout(Point(GetScreenWidth(), GetScreenHeight()));
+		set_resize_limits();
 		return;
 	}
 
@@ -67,6 +63,7 @@ void Window::update()
 	if (IsKeyPressed(KEY_ESCAPE)) {
 		debug_borders_enabled = !debug_borders_enabled;
 		draw_cnt = 1;
+		return;
 	}
 #endif
 
@@ -75,11 +72,18 @@ void Window::update()
 	// Sends event and records the widget's response and returns the widget.
 	auto notify = [this, mpos](Widget *w, EventType type, Point pd = Point()) {
 		auto ev = Event(type, mpos);
-		ev.shared_pt_ = pd;
-		auto resp = w->notify(ev);
-		draw_cnt = resp ? true : draw_cnt;
-		return resp;
+		ev.delta = pd;
+		auto widget = w->notify(ev);
+		draw_cnt = widget ? 1 : draw_cnt;
+		return widget;
 	};
+
+	// We always send the scroll event, since it is used by scrollable views,
+	// which are not interactive.
+	// Mouse scroll event, both axes.
+	auto scroll = vec2_to_point(GetMouseWheelMoveV());
+	if (scroll.x != 0 || scroll.y != 0)
+		notify(root_container.get(), EventType::Scroll, scroll);
 
 	Widget *hovered = nullptr;
 	if (root_container->collides_with_point(mpos))
@@ -130,11 +134,6 @@ void Window::update()
 	// Notify that the widget has been pressed by left mouse.
 	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 		mouse_down_over = notify(hovered, EventType::MousePressed);
-
-	// Mouse scroll event, both axes.
-	auto scroll = vec2_to_point(GetMouseWheelMoveV());
-	if (scroll.x != 0 || scroll.y != 0)
-		notify(hovered, EventType::Scroll, scroll);
 }
 
 void Window::draw()
@@ -155,8 +154,28 @@ void Window::layout(Point size)
 	// HACK - We draw twice when resized.
 	// Drawing only once causes small black square shaped boxes to appear
 	// at top-right and bottom-left corners and the drawing of that part to
-	// be shifted. Along with that the resize does not work properly.
+	// be shifted.
 	draw_cnt = 2;
 	root_container->set_size(size);
 	root_container->set_position(Point(0, 0));
+}
+
+void Window::set_resize_limits()
+{
+	if (!IsWindowReady())
+		return;
+
+	const Point win_min(1, 1);
+	const Point win_max(
+		GetMonitorWidth(GetCurrentMonitor()),
+		GetMonitorHeight(GetCurrentMonitor())
+	);
+
+	auto minsz = root_container->get_min_size();
+	auto maxsz = root_container->get_max_size();
+	minsz = clamp_components(minsz, win_min, win_max);
+	maxsz = clamp_components(maxsz, win_min, win_max);
+
+	SetWindowMinSize(minsz.x, minsz.y);
+	SetWindowMaxSize(maxsz.x, maxsz.y);
 }

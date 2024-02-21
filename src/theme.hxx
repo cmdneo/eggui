@@ -5,10 +5,11 @@
 
 using eggui::RGBA;
 
+constexpr float SCROLL_FACTOR = 24.;
+
 constexpr float ELEMENT_ROUNDNESS = 0.2;
 constexpr int SCROLL_BAR_WIDTH = 10;
-constexpr int SLIDER_LENGTH = 30;
-constexpr int SCROLL_BAR_ARROW_SIZE = SCROLL_BAR_WIDTH;
+constexpr int MIN_SLIDER_LENGTH = 30;
 
 // Dark theme color palette
 constexpr RGBA BACKGROUND_COLOR(31, 32, 33);

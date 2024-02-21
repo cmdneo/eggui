@@ -46,7 +46,7 @@ public:
 
 	/// @brief Set minimum padding for each direction, if a value is negative
 	/// then the old padding for that direction is preserved.
-	void set_min_padding(int top, int bottom, int left, int right);
+	void set_padding(int top, int bottom, int left, int right);
 	void layout_children(Point size_hint) override;
 	Point calc_layout_info() override;
 
@@ -64,7 +64,7 @@ private:
 	int right_pad = 0;
 
 	// Expand inner widget.
-	Fill fill_mode = Fill::Stretch;
+	Fill fill_mode = Fill::RowNColumn;
 };
 
 class LinearBox final : public Container
@@ -93,15 +93,15 @@ protected:
 	void draw_impl() override;
 
 private:
-	/// @brief Calculate gap size in both components.
-	/// @return Gap size.
-	Point calc_gap_size() const;
-
 	struct Child {
 		std::unique_ptr<Widget> widget;
 		Alignment align;
 		Fill fill;
 	};
+
+	/// @brief Calculate gap size in both components.
+	/// @return Gap size.
+	Point calc_gap_size() const;
 
 	// Children pushed to start, first element is placed at start.
 	std::vector<Child> start_children;
@@ -205,13 +205,6 @@ inline void calc_layout_info_if_container(Widget &w)
 	auto cont = dynamic_cast<Container *>(&w);
 	if (cont)
 		cont->calc_layout_info();
-}
-
-inline void layout_children_if_container(Widget &w, Point size_hint)
-{
-	auto cont = dynamic_cast<Container *>(&w);
-	if (cont)
-		cont->layout_children(size_hint);
 }
 
 } // namespace eggui

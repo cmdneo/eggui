@@ -43,8 +43,10 @@ private:
 	/// @brief Layout the widgets.
 	/// @param size Size of the window for layout.
 	void layout(Point size);
+	/// @brief Set min and max window size as per root_cntainer size.
+	void set_resize_limits();
 
-	const char *title = "EGGUI - :)";
+	const char *title = "EGGUI Window";
 	std::unique_ptr<Container> root_container;
 	std::function<bool()> close_action = []() { return true; };
 

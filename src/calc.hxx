@@ -54,11 +54,11 @@ calc_stretched_size(Point min_size, Point max_size, Point avail_size, Fill fill)
 	avail_size = clamp_components(avail_size, min_size, max_size);
 
 	switch (fill) {
-	case Fill::StretchColumn:
+	case Fill::Column:
 		return Point(avail_size.x, min_size.y);
-	case Fill::StretchRow:
+	case Fill::Row:
 		return Point(min_size.x, avail_size.y);
-	case Fill::Stretch:
+	case Fill::RowNColumn:
 		return avail_size;
 	case Fill::None:
 		return min_size;
@@ -125,7 +125,7 @@ inline void calc_expanded_size(
 /// @param lens Lengths of the boxes.
 /// @param gap Gap between each box.
 /// @return Total length.
-inline float calc_gapped_length(const std::vector<float> &lens, int gap)
+inline float calc_length_with_gaps(const std::vector<float> &lens, int gap)
 {
 	float sum = 0;
 	for (auto v : lens)

@@ -14,6 +14,8 @@ struct Point {
 	{
 	}
 
+	Point get_swapped() { return Point(y, x); }
+
 	float min_coord() const { return x < y ? x : y; }
 
 	Point &operator+=(Point other)
@@ -33,7 +35,7 @@ struct Point {
 	float &operator[](float i) { return i == 0 ? x : y; }
 	const float &operator[](float i) const { return i == 0 ? x : y; }
 
-	bool is_in_box(Point box_pos, Point box_size)
+	bool is_in_box(Point box_pos, Point box_size) const
 	{
 		Point start = box_pos;
 		Point end = start;
@@ -45,6 +47,10 @@ struct Point {
 	float x = 0;
 	float y = 0;
 };
+
+// Good enough for UI calculations,
+// values less than this are basically treated as zeroes.
+constexpr float POINT_EPSILON = 0.01;
 
 inline Point operator+(Point l, Point r) { return (l += r); }
 inline Point operator-(Point l, Point r) { return (l -= r); }
@@ -59,7 +65,8 @@ inline Point operator/(Point p, float n) { return Point(p.x / n, p.y / n); }
 
 inline bool almost_eq(Point p, Point q)
 {
-	return std::abs(p.x - q.x) < 10e-3 && std::abs(p.y - q.y) < 10e-3;
+	return std::abs(p.x - q.x) < POINT_EPSILON
+		   && std::abs(p.y - q.y) < POINT_EPSILON;
 }
 
 inline Point mul_components(Point l, Point r)

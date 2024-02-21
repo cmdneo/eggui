@@ -25,7 +25,8 @@ enum class EventType {
 
 struct Event {
 	Event(EventType ev_type, Point cursor_ = Point(0, 0))
-		: type(ev_type), cursor(cursor_)
+		: type(ev_type)
+		, cursor(cursor_)
 	{
 	}
 
@@ -36,7 +37,6 @@ struct Event {
 	Point cursor;
 	// We use a union because events using it are exclusive.
 	union {
-		Point shared_pt_;
 		Point delta;
 		Point scroll;
 		int key;
