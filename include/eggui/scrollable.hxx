@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <utility>
+#include <optional>
 #include <functional>
 
 #include "widget.hxx"
@@ -34,22 +35,32 @@ protected:
 	void draw_impl() override;
 
 private:
-	std::function<void(Point delta)> on_drag;
+	std::function<void(Point delta)> on_drag = [](Point) {};
 };
 
 class ScrollBar : public Interactive
 {
 public:
 	enum Axis { X = 0, Y = 1 };
+	static constexpr Axis AXES[]{Axis::X, Axis::Y};
 
 	ScrollBar(int w, int h, Axis axis);
 
-	void set_on_scroll(std::function<void(float)> callback)
+	void set_on_scroll(std::function<void(float frac)> callback)
 	{
 		on_scroll = callback;
 	}
 
-	void set_scroll_position(Point rel_click_pos);
+	/// @brief Scroll to position on scrollbar.
+	/// @param bar_click_pos Position on the bar where the slider should be centered.
+	void scroll_to_position(Point bar_click_pos);
+
+	/// @brief Set scroll fraction and notify the view about it.
+	/// @param frac Scroll fraction in range [0, 1].
+	void set_scroll_fraction(float frac);
+	inline float get_scroll_fraction() const { return scroll_fraction; }
+
+	void set_slider_len(int len);
 
 protected:
 	Widget *notify_impl(Event ev) override;
@@ -57,18 +68,19 @@ protected:
 	void draw_debug_impl() override;
 
 private:
-	std::function<void(float)> on_scroll;
+	std::function<void(float)> on_scroll = [](float) {};
 	ScrollSlider slider;
+	float scroll_fraction = 0.0;
 	Axis scroll_axis;
 };
 
-class ScrollableView : Widget
+class VScrollView : public Container
 {
 public:
-	ScrollableView(
-		std::unique_ptr<Container> container_, bool x_axis, bool y_axis,
-		bool invert_axes = true
-	);
+	VScrollView(std::unique_ptr<Widget> child_, int w, int h);
+
+	void layout_children(Point size_hint) override;
+	Point calc_layout_info() override;
 
 protected:
 	Widget *notify_impl(Event ev) override;
@@ -76,13 +88,13 @@ protected:
 	void draw_debug_impl() override;
 
 private:
-	std::unique_ptr<Container> container = nullptr;
-	ScrollBar h_scrollbar;
-	ScrollBar v_scrollbar;
+	/// @brief Size occupied by the scrollbars for both axes
+	Point calc_bars_size() const;
 
-	bool x_scroll_enabled = false;
-	bool y_scroll_enabled = false;
-	bool axes_inverted = true;
+	std::unique_ptr<Widget> child = nullptr;
+	std::optional<ScrollBar> scrollbar{};
+
+	static constexpr ScrollBar::Axis AXIS = ScrollBar::Axis::Y;
 };
 } // namespace eggui
 
