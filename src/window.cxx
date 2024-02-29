@@ -31,8 +31,8 @@ void Window::main_loop(int width_hint, int height_hint)
 
 	set_resize_limits();
 
-	SetExitKey(KEY_NULL); // Do not exit on ESC
-	EnableEventWaiting(); // Set sleep till a new event arrives
+	SetExitKey(KEY_NULL); // Do not exit on ESC.
+	EnableEventWaiting(); // Sleep till a new event arrives.
 
 	init_graphics();
 
@@ -93,22 +93,24 @@ void Window::update()
 	// mouse button was already pressed over some widget and that widget
 	// responded to the button press.
 	if (mouse_down_over) {
-		if (!IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+		if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+			// Register a click only if mouse button is released while the
+			// cursor is over the same widget, otherwise ignore the click.
+			if (mouse_down_over == hovered)
+				notify(mouse_down_over, EventType::MouseClick);
+
+			notify(mouse_down_over, EventType::MouseReleased);
+			mouse_down_over = nullptr;
+		} else {
+			// If mouse button has not been released then, we act as if the
+			// cursor has not left the widget even if the cursor is really
+			// hovering over some another widget.
+			hovered = mouse_down_over;
+
 			auto delta = vec2_to_point(GetMouseDelta());
 			if (delta.x != 0 || delta.y != 0)
 				notify(mouse_down_over, EventType::MouseDrag, delta);
-
-			return;
 		}
-
-		// Register a click only if mouse button is released while the cursor is
-		// over the same widget, otherwise ignore the click.
-		if (mouse_down_over == hovered)
-			notify(mouse_down_over, EventType::MouseClick);
-
-		notify(mouse_down_over, EventType::MouseReleased);
-		mouse_down_over = nullptr;
-		return;
 	}
 
 	// If a new widget(or none) is being hovered over then notify the

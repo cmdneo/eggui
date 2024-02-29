@@ -41,8 +41,10 @@ Point Widget::calc_abs_position() const
 
 Widget *Widget::notify(Event ev)
 {
-	// Make cursor position relative to the widget.
+	// Make cursor position relative to the widget and constrain it within
+	// the widget boundary.
 	ev.cursor -= get_position();
+	ev.cursor = clamp_components(ev.cursor, Point(0, 0), get_size());
 	return notify_impl(ev);
 }
 
@@ -87,8 +89,6 @@ bool Interactive::handle_mouse_hover_events(Event ev)
 		break;
 	case EventType::MouseOut:
 		is_hovering = false;
-		break;
-	case EventType::MouseMotion:
 		break;
 
 	default:

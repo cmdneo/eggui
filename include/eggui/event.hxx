@@ -32,8 +32,6 @@ struct Event {
 
 	EventType type;
 
-	// --- Event data ---
-	// Absolute cursor position
 	Point cursor;
 	// We use a union because events using it are exclusive.
 	union {
