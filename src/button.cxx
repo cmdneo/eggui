@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <string>
 
 #include "graphics.hxx"
 #include "canvas.hxx"
@@ -6,6 +7,20 @@
 #include "theme.hxx"
 
 using namespace eggui;
+
+Button::Button(int w, int h, std::string txt)
+	: Interactive(w, h)
+	, label(w, h, txt, RGBA(255, 255, 255))
+{
+	label.set_parent(this);
+	label.set_text_align(Alignment::Center, Alignment::Center);
+}
+
+void Button::set_size(Point new_size)
+{
+	Interactive::set_size(new_size);
+	label.set_all_sizes(new_size);
+}
 
 Widget *Button::notify_impl(Event ev)
 {
@@ -30,10 +45,6 @@ void Button::draw_impl()
 	else if (is_hovering)
 		color = BUTTON_HOVER_COLOR;
 
-	draw_rounded_rect(Point(), get_size(), 0.25, color);
-
-	// Draw centered text
-	auto text_size = tell_text_size(label, FontSize::Small);
-	auto text_pos = (get_size() - text_size) / 2;
-	draw_text(text_pos, RGBA(255, 255, 255), label, FontSize::Small);
+	draw_rounded_rect(Point(), get_size(), ELEMENT_ROUNDNESS, color);
+	label.draw();
 }

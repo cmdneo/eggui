@@ -22,6 +22,7 @@ add_library(eggui
 	src/widget.cxx
 	src/container.cxx
 	src/button.cxx
+	src/label.cxx
 	src/scrollable.cxx
 )
 

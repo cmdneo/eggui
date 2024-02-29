@@ -7,8 +7,7 @@
 #include "widget.hxx"
 #include "container.hxx"
 #include "button.hxx"
-
-// TODO add these when done
-// #include "scrollable.hxx"
+#include "scrollable.hxx"
+#include "label.hxx"
 
 #endif
