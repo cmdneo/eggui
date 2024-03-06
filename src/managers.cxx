@@ -68,7 +68,7 @@ void ClippingManager::pop_clip_area()
 	}
 }
 
-pair<Point, Point> ClippingManager::get_current_clip_area()
+pair<Point, Point> ClippingManager::get_current_clip_area() const
 {
 	if (clip_areas.empty())
 		return pair(Point(0, 0), get_window_size());
@@ -76,7 +76,8 @@ pair<Point, Point> ClippingManager::get_current_clip_area()
 		return clip_areas.back();
 }
 
-pair<Point, Point> ClippingManager::calc_clip_area(Point start, Point size)
+pair<Point, Point>
+ClippingManager::calc_clip_area(Point start, Point size) const
 {
 	auto new_area = pair(start, size);
 	if (!clip_areas.empty())

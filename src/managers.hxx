@@ -7,10 +7,11 @@
 #include "raylib/raylib.h"
 #include "point.hxx"
 
+namespace eggui
+{
+
 class ClippingManager
 {
-	using Point = eggui::Point;
-
 public:
 	static ClippingManager &instance();
 
@@ -25,13 +26,13 @@ public:
 	/// @brief Get current clip area on screen.
 	/// @return Clip area start and size.
 	/// @note If nothing is being clipped then returns screen area.
-	std::pair<Point, Point> get_current_clip_area();
+	std::pair<Point, Point> get_current_clip_area() const;
 
 	/// @brief Just calculate the resulting clipping area, do not apply it.
 	/// @param start Area start position on screen.
 	/// @param size  Area size.
 	/// @return Clip area start and size.
-	std::pair<Point, Point> calc_clip_area(Point start, Point size);
+	std::pair<Point, Point> calc_clip_area(Point start, Point size) const;
 
 private:
 	ClippingManager() = default;
@@ -41,7 +42,21 @@ private:
 	std::vector<std::pair<Point, Point>> clip_areas;
 };
 
-// TODO complete this
+// class TranslationManager
+// {
+// public:
+// 	static TranslationManager &instance();
+
+// 	void push_translation(Point pos);
+// 	void pop_translation(Point pos);
+
+// 	Point get_total_translation() const;
+
+// private:
+// 	TranslationManager() = default;
+// };
+
+// TODO complete font manager
 class FontManager
 {
 public:
@@ -57,5 +72,7 @@ private:
 
 	std::vector<Font> fonts;
 };
+
+} // namespace eggui
 
 #endif

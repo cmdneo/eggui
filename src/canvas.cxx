@@ -45,8 +45,8 @@ Pen::Pen(Canvas &canvas_, bool is_clipping_)
 	auto size = canvas.region_size;
 
 	auto [pos, sz] = ClippingManager::instance().calc_clip_area(start, size);
-	clip_start = pos - get_total_translation(); // Make position relative
-	clip_size = sz;
+	clip_rect_pos = pos - get_total_translation(); // Make position relative
+	clip_rect_size = sz;
 
 	if (is_clipping)
 		ClippingManager::instance().push_clip_area(start, size);

@@ -10,24 +10,29 @@ namespace eggui
 {
 class Pen; // Forward declaration
 
-/// @brief We draw a every widget on a canvas to support scrolling views and
-/// and drawing a widget only when it changes.
+/// @brief We draw every widget on a canvas to support scrollable views,
+/// clipping and relative coordinates.
 ///
-/// Before starting drawing using draw_* functions, a pen needs to be acquired
-/// from the canvas and that pen should stay in the scope until the drawing is
-/// complete.
+/// @details
+/// Before drawing using draw_* functions, a pen needs to be acquired from the
+/// canvas so that things get drawn at the right position on the canvas.
+/// The acquired pen should stay in the scope until the drawing is complete.
 ///
-/// Example:
+/// @example
 /// @code {.cpp}
 /// 	const Pen pen = canvas.acquire_pen();
 /// 	draw_circle(Point(50, 50), 21, RGBA(255, 0, 0));
 /// @endcode
+///
+/// @warning Do not move the canvas while it has an active pen.
 class Canvas
 {
 	friend class Pen;
 
 public:
 	Canvas() = default;
+
+	Canvas(Canvas &&c) = default;
 	Canvas(const Canvas &) = delete;
 
 	/// @brief Create a canvas.
@@ -38,14 +43,6 @@ public:
 		, position(position_)
 		, region_start(Point(0, 0))
 		, region_size(size_)
-	{
-	}
-
-	Canvas(Canvas &&c)
-		: size(c.size)
-		, position(c.position)
-		, region_start(c.region_start)
-		, region_size(c.region_size)
 	{
 	}
 
@@ -86,46 +83,41 @@ private:
 	int active_pen_cnt = 0; // Managed by Pen class
 
 	// Canvas size.
-	Point size;
+	Point size{};
 	// Canvas position.
-	Point position;
+	Point position{};
 
 	// Region of the canvas which should be drawn.
 	// By default full canvas is drawn.
-	Point region_start;
-	Point region_size;
+	Point region_start{};
+	Point region_size{};
 };
 
 /// @brief Draw to the canvas from which it was acquired.
+///
 /// @details
 /// We need to acquire a pen for canvas to start to start drawing on it.
 /// This is because, before starting the drawing we need to apply the
 /// translation and after the drawing finishes we need to remove the
 /// translation applied on the canvas.
 ///
-/// If multiple pens are active then, the most recently acquired pen will be
-/// used to draw on its corresponding canvas.
-/// This is the key to drawing a to the parent widget's canvas.
+/// If multiple pens are active then(of different canvases), then the most
+/// recently acquired pen will be used to draw.
+/// This is the key to drawing using relative positions.
 class Pen
 {
 public:
 	Pen(Canvas &canvas_, bool is_clipping_);
 	~Pen();
 
+	Pen(Pen &&pen) = default;
 	Pen(const Pen &) = delete;
-	Pen(Pen &&pen)
-		: canvas(pen.canvas)
-		, is_clipping(pen.is_clipping)
-		, clip_start(pen.clip_start)
-		, clip_size(pen.clip_size)
-	{
-	}
 
-	/// @brief Gets clip region in which the pen can actually draw
-	/// @return Rectangle: position and size
+	/// @brief Gets clip region in which the pen can actually draw.
+	/// @return Rectangle: relative(to canvas) position and size.
 	std::pair<Point, Point> get_clip_region() const
 	{
-		return {clip_start, clip_size};
+		return {clip_rect_pos, clip_rect_size};
 	}
 
 	/// @brief Does absolutely nothing, its only purpose is to tell the
@@ -138,8 +130,9 @@ private:
 
 	// Actual clip region produced by the intersection of previously pushed
 	// clip regions, calculated even if the pen is not clipping.
-	Point clip_start{};
-	Point clip_size{};
+	// Position is relative to the canvas it refers to.
+	Point clip_rect_pos{};
+	Point clip_rect_size{};
 };
 
 } // namespace eggui
