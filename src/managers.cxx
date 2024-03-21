@@ -43,6 +43,8 @@ ClippingManager &ClippingManager::instance()
 
 void ClippingManager::push_clip_area(Point start, Point size)
 {
+	assert(is_enabled);
+
 	auto new_area = calc_clip_area(start, size);
 	auto [pos, sz] = new_area;
 
@@ -56,6 +58,7 @@ void ClippingManager::push_clip_area(Point start, Point size)
 
 void ClippingManager::pop_clip_area()
 {
+	assert(is_enabled);
 	assert(!clip_areas.empty());
 
 	clip_areas.pop_back();
@@ -68,7 +71,28 @@ void ClippingManager::pop_clip_area()
 	}
 }
 
-pair<Point, Point> ClippingManager::get_current_clip_area() const
+void ClippingManager::disable()
+{
+	assert(is_enabled);
+	is_enabled = false;
+
+	if (!clip_areas.empty())
+		EndScissorMode();
+}
+
+void ClippingManager::enable()
+{
+	assert(!is_enabled);
+	is_enabled = true;
+
+	if (clip_areas.empty())
+		return;
+
+	auto [pos, sz] = clip_areas.back();
+	BeginScissorMode(pos.x, pos.y, sz.x, sz.y);
+}
+
+pair<Point, Point> ClippingManager::get_current_clip_region() const
 {
 	if (clip_areas.empty())
 		return pair(Point(0, 0), get_window_size());

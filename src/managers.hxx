@@ -10,6 +10,7 @@
 namespace eggui
 {
 
+/// @brief Nested draw region clipping.
 class ClippingManager
 {
 public:
@@ -23,10 +24,16 @@ public:
 	/// @brief Restores the last clip area.
 	void pop_clip_area();
 
+	/// @brief Temporarily disable clipping.
+	/// @note While clipping is disabled push/pop should not be used.
+	void disable();
+	/// @brief Re-enable clipping and resotre the last clip region.
+	void enable();
+
 	/// @brief Get current clip area on screen.
 	/// @return Clip area start and size.
 	/// @note If nothing is being clipped then returns screen area.
-	std::pair<Point, Point> get_current_clip_area() const;
+	std::pair<Point, Point> get_current_clip_region() const;
 
 	/// @brief Just calculate the resulting clipping area, do not apply it.
 	/// @param start Area start position on screen.
@@ -40,6 +47,7 @@ private:
 	/// Stores the clip area for each push operation for the purpose of
 	/// restoring them when `pop_clip_area` is called.
 	std::vector<std::pair<Point, Point>> clip_areas;
+	bool is_enabled = true;
 };
 
 // class TranslationManager
