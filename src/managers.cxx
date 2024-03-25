@@ -1,6 +1,5 @@
 #include <cassert>
 #include <algorithm>
-#include <memory>
 #include <utility>
 
 #include "raylib/raylib.h"
@@ -12,7 +11,6 @@
 using std::max;
 using std::min;
 using std::pair;
-using std::unique_ptr;
 
 using namespace eggui;
 
@@ -37,8 +35,8 @@ find_intersection(pair<Point, Point> rect1, pair<Point, Point> rect2)
 //---------------------------------------------------------
 ClippingManager &ClippingManager::instance()
 {
-	static unique_ptr<ClippingManager> ptr(new ClippingManager());
-	return *ptr;
+	static ClippingManager obj;
+	return obj;
 }
 
 void ClippingManager::push_clip_area(Point start, Point size)
@@ -114,6 +112,6 @@ ClippingManager::calc_clip_area(Point start, Point size) const
 //---------------------------------------------------------
 FontManager &FontManager::instance()
 {
-	static unique_ptr<FontManager> ptr(new FontManager());
-	return *ptr;
+	static FontManager obj;
+	return obj;
 }
