@@ -1,3 +1,5 @@
+#include <climits>
+
 #include "raylib/raylib.h"
 
 #include "window.hxx"
@@ -20,7 +22,7 @@ void Window::main_loop(int width_hint, int height_hint)
 	//     State of the window changes.
 
 	layout(Point(width_hint, height_hint));
-	auto size = root_container->get_size();
+	auto size = root_widget->get_size();
 
 	SetTraceLogLevel(LOG_WARNING);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
@@ -32,14 +34,15 @@ void Window::main_loop(int width_hint, int height_hint)
 	set_resize_limits();
 
 	SetExitKey(KEY_NULL); // Do not exit on ESC.
-	EnableEventWaiting(); // Sleep till a new event arrives.
+	EnableEventWaiting(); // Sleep untill a new input event arrives.
+	event_waiting_enabled = true;
 
 	init_graphics();
 
 	while (!(WindowShouldClose() && close_action())) {
 		// Poll for events manually if nothing is drawn, since
 		// when something is drawn events are polled automatically.
-		if (draw_cnt-- > 0)
+		if (!event_waiting_enabled || draw_cnt-- > 0)
 			draw();
 		else
 			PollInputEvents();
@@ -67,75 +70,41 @@ void Window::update()
 	}
 #endif
 
-	Point mpos = vec2_to_point(GetMousePosition());
+	// TODO Put this animation update in a better place
+	// If there are any animations pending then disable event waiting.
+	// if (!animations.empty() && event_waiting_enabled) {
+	// 	DisableEventWaiting();
+	// 	event_waiting_enabled = false;
+	// } else if (!event_waiting_enabled) {
+	// 	EnableEventWaiting();
+	// 	event_waiting_enabled = true;
+	// }
 
-	// Sends event and records the widget's response and returns the widget.
-	auto notify = [this, mpos](Widget *w, EventType type, Point pd = Point()) {
-		auto ev = Event(type, mpos);
-		ev.delta = pd;
-		auto widget = w->notify(ev);
-		draw_cnt = widget ? 1 : draw_cnt;
-		return widget;
-	};
+	// Run all the animations.
+	// for (auto &a : animations)
+	// 	a.update();
+	// swap_remove_if(animations, [](const Animation &a) {
+	// 	return a.has_ended();
+	// });
 
-	// We always send the scroll event, since it is used by scrollable views,
-	// which are not interactive.
-	// Mouse scroll event, both axes.
-	auto scroll = vec2_to_point(GetMouseWheelMoveV());
-	if (scroll.x != 0 || scroll.y != 0)
-		notify(root_container.get(), EventType::Scroll, scroll);
+	handle_mouse_events();
 
-	Widget *hovered = nullptr;
-	if (root_container->collides_with_point(mpos))
-		hovered = notify(root_container.get(), EventType::IsInteractive);
-
-	// Detect if mouse released, clicked or dragged. It can only happen if
-	// mouse button was already pressed over some widget and that widget
-	// responded to the button press.
-	if (mouse_down_over) {
-		if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-			// Register a click only if mouse button is released while the
-			// cursor is over the same widget, otherwise ignore the click.
-			if (mouse_down_over == hovered)
-				notify(mouse_down_over, EventType::MouseClick);
-
-			notify(mouse_down_over, EventType::MouseReleased);
-			mouse_down_over = nullptr;
-		} else {
-			// If mouse button has not been released then, we act as if the
-			// cursor has not left the widget even if the cursor is really
-			// hovering over some another widget.
-			hovered = mouse_down_over;
-
-			auto delta = vec2_to_point(GetMouseDelta());
-			if (delta.x != 0 || delta.y != 0)
-				notify(mouse_down_over, EventType::MouseDrag, delta);
-		}
-	}
-
-	// If a new widget(or none) is being hovered over then notify the
-	// older widget that it is no longer being hovered over.
-	if (hovering_over && hovering_over != hovered) {
-		notify(hovering_over, EventType::MouseOut);
-		hovering_over = nullptr;
-	}
-
-	if (!hovered)
+	if (!hovering_over)
 		return;
 
-	// If we are hoveing over the same widget then notify it about where
-	// the mouse is hovering over it along with its delta.
-	// Else notify the newly hovered over widget that it is being hovered.
-	if (hovering_over == hovered) {
-		auto delta = vec2_to_point(GetMouseDelta());
-		notify(hovered, EventType::MouseMotion, delta);
-	} else {
-		hovering_over = notify(hovered, EventType::MouseIn);
+	// TODO Cleanup this keyboard testing stuff
+	int charc = GetCharPressed();
+	if (charc != 0) {
+		Event ev(EventType::CharEntered, Point());
+		ev.key = charc;
+		send_event(hovering_over, ev);
 	}
-
-	// Notify that the widget has been pressed by left mouse.
-	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-		mouse_down_over = notify(hovered, EventType::MousePressed);
+	int keyc = GetKeyPressed();
+	if (charc == 0 && keyc != KEY_NULL) {
+		Event ev(EventType::KeyPressed);
+		ev.key = keyc;
+		send_event(hovering_over, ev);
+	}
 }
 
 void Window::draw()
@@ -144,9 +113,9 @@ void Window::draw()
 
 	clear_background();
 
-	root_container->draw();
+	root_widget->draw();
 	if (debug_borders_enabled)
-		root_container->draw_debug();
+		root_widget->draw_debug();
 
 	EndDrawing();
 }
@@ -158,8 +127,8 @@ void Window::layout(Point size)
 	// at top-right and bottom-left corners and the drawing of that part to
 	// be shifted.
 	draw_cnt = 2;
-	root_container->set_size(size);
-	root_container->set_position(Point(0, 0));
+	root_widget->set_size(size);
+	root_widget->set_position(Point(0, 0));
 }
 
 void Window::set_resize_limits()
@@ -173,11 +142,91 @@ void Window::set_resize_limits()
 		GetMonitorHeight(GetCurrentMonitor())
 	);
 
-	auto minsz = root_container->get_min_size();
-	auto maxsz = root_container->get_max_size();
+	auto minsz = root_widget->get_min_size();
+	auto maxsz = root_widget->get_max_size();
 	minsz = clamp_components(minsz, win_min, win_max);
 	maxsz = clamp_components(maxsz, win_min, win_max);
 
 	SetWindowMinSize(minsz.x, minsz.y);
 	SetWindowMaxSize(maxsz.x, maxsz.y);
+}
+
+void Window::handle_mouse_events()
+{
+	// We always send the scroll event, since it is used by
+	// scrollable views, which are not interactive in a general way.
+	// TODO Better classify which widgets can recieve which events.
+	auto scroll = vec2_to_point(GetMouseWheelMoveV());
+	if (scroll.x != 0 || scroll.y != 0)
+		notify(root_widget.get(), EventType::Scroll, scroll);
+
+	Widget *hovered = nullptr;
+	// Check if the widget is interactive by sending a special event,
+	// then only it can be interacted with using the mouse/keyboard.
+	auto mpos = vec2_to_point(GetMousePosition());
+	if (root_widget->collides_with_point(mpos))
+		hovered = notify(root_widget.get(), EventType::IsInteractive);
+
+	// If mouse is not down over anything and then the
+	// mouse button is pressed and the widget responds to it.
+	if (!mouse_down_over) {
+		if (hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+			mouse_down_over = notify(hovered, EventType::MousePressed);
+	}
+	// If mouse released.
+	else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+		// Register a click only if the mouse button is released while
+		// hovering over the same widget it was pressed upon.
+		if (mouse_down_over == hovered)
+			notify(mouse_down_over, EventType::MouseClick);
+
+		notify(mouse_down_over, EventType::MouseReleased);
+		mouse_down_over = nullptr;
+	}
+	// If the mouse button was pressed over some widget and has not been
+	// released yet, then, we act as if the cursor has not left the widget
+	// even if the cursor is might be hovering over some another widget.
+	else {
+		hovered = mouse_down_over;
+
+		auto delta = vec2_to_point(GetMouseDelta());
+		if (delta.x != 0 || delta.y != 0)
+			notify(mouse_down_over, EventType::MouseDrag, delta);
+	}
+
+	// If a new widget(or none) is being hovered over then notify the
+	// older widget that it is no longer being hovered over.
+	if (hovering_over && hovering_over != hovered) {
+		notify(hovering_over, EventType::MouseOut);
+		hovering_over = nullptr;
+	}
+
+	if (!hovered)
+		return;
+
+	// If we are still hovering over the same widget then notify it about
+	// where the mouse is hovering over it along with its delta. Otherwise,
+	// notify the new widget that it is being hovered over.
+	if (hovering_over == hovered) {
+		auto delta = vec2_to_point(GetMouseDelta());
+		notify(hovered, EventType::MouseMotion, delta);
+	} else {
+		notify(hovered, EventType::MouseIn);
+		hovering_over = hovered;
+	}
+}
+
+Widget *Window::notify(Widget *w, EventType type, Point extra)
+{
+	auto mpos = vec2_to_point(GetMousePosition());
+	auto ev = Event(type, mpos);
+	ev.delta = extra;
+	return send_event(w, ev);
+}
+
+Widget *Window::send_event(Widget *w, Event ev)
+{
+	auto ret = w->notify(ev);
+	draw_cnt = ret ? 1 : draw_cnt;
+	return ret;
 }
