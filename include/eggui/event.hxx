@@ -5,6 +5,9 @@
 
 namespace eggui
 {
+// Forward delcaration
+class Window;
+
 enum class EventType {
 	// Mouse events
 	Scroll,
@@ -16,20 +19,28 @@ enum class EventType {
 	MouseDrag,
 	MouseMotion,
 	// Keyboard events
-	KeyDown,
-	KeyReleased,
 	KeyPressed,
+	CharEntered,
 	// Events for querying
 	IsInteractive,
 };
 
 struct Event {
-	Event(EventType ev_type, Point cursor_ = Point(0, 0))
-		: type(ev_type)
+	Event(Window &win, EventType ev_type, Point cursor_)
+		: window(win)
+		, type(ev_type)
 		, cursor(cursor_)
 	{
 	}
 
+	Event(Window &win, EventType ev_type, int key_or_char)
+		: window(win)
+		, type(ev_type)
+		, keycode(key_or_char)
+	{
+	}
+
+	Window &window;
 	EventType type;
 
 	Point cursor;
@@ -37,7 +48,9 @@ struct Event {
 	union {
 		Point delta;
 		Point scroll;
-		int key;
+		// Keycode is dependent on the library used(here raylib).
+		int keycode;
+		int char_val;
 	};
 };
 } // namespace eggui

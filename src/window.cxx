@@ -95,16 +95,15 @@ void Window::update()
 	// TODO Cleanup this keyboard testing stuff
 	int charc = GetCharPressed();
 	if (charc != 0) {
-		Event ev(EventType::CharEntered, Point());
-		ev.key = charc;
+		Event ev(*this, EventType::CharEntered, charc);
 		send_event(hovering_over, ev);
 	}
-	int keyc = GetKeyPressed();
+	static int keyc = 0;
+	keyc = GetKeyPressed();
 	if (charc == 0 && keyc != KEY_NULL) {
-		Event ev(EventType::KeyPressed);
-		ev.key = keyc;
+		Event ev(*this, EventType::KeyPressed, keyc);
 		send_event(hovering_over, ev);
-	}
+	};
 }
 
 void Window::draw()
@@ -219,7 +218,7 @@ void Window::handle_mouse_events()
 Widget *Window::notify(Widget *w, EventType type, Point extra)
 {
 	auto mpos = vec2_to_point(GetMousePosition());
-	auto ev = Event(type, mpos);
+	auto ev = Event(*this, type, mpos);
 	ev.delta = extra;
 	return send_event(w, ev);
 }

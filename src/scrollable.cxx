@@ -168,13 +168,13 @@ Widget *ScrollBar::notify_impl(Event ev)
 		return Interactive::notify_impl(ev);
 
 	auto pos = slider.get_center_position();
-	Event dragged(EventType::MouseDrag, pos);
+	Event dragged(ev.window, EventType::MouseDrag, pos);
 	dragged.delta = ev.cursor - pos;
 
 	// We tell slider that it was hovered, pressed and then dragged,
 	// for pretending that the slider was dragged to that position.
-	slider.notify(Event(EventType::MouseIn, pos));
-	slider.notify(Event(EventType::MousePressed, pos));
+	slider.notify(Event(ev.window, EventType::MouseIn, pos));
+	slider.notify(Event(ev.window, EventType::MousePressed, pos));
 	return slider.notify(dragged);
 }
 
