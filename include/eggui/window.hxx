@@ -8,6 +8,7 @@
 
 #include "widget.hxx"
 #include "container.hxx"
+#include "animation.hxx"
 
 namespace eggui
 {
@@ -38,26 +39,46 @@ public:
 	/// @param height_hint Desired window height (negative for auto).
 	void main_loop(int width_hint = -1, int height_hint = -1);
 
+	// Service request methods for widgets.
+	//---------------------------------------------------------------
+
+	/// @brief Attach an animation to the widget.
+	/// @param w The widget which is requesting the animation.
+	/// @param animation Animation frame callback object.
+	void request_animation(Widget *w, Animation animation);
+	/// @brief Remove all animations associated with the widget.
+	/// @param w The widget.
+	void remove_animations(Widget *w);
+
+	/// @brief Provide focus to the widget, removing earlier focus if any.
+	/// @param w The interactive widget to be focused on.
+	void request_focus(Interactive *w);
+
+	/// @brief Request the window to close the window and ends its main loop.
+	/// @param w Requesting widget.
+	void request_close_window(Widget *w);
+
 private:
 	/// @brief Update all the widgets by sending events to them.
 	void update();
 	/// @brief Draw the window.
 	void draw();
+
 	/// @brief Layout the widgets.
 	/// @param size Size of the window for layout.
 	void layout(Point size);
 	/// @brief Set min and max window size as per root_widget size.
 	void set_resize_limits();
+
 	/// @brief Handle mouse related events.
 	void handle_mouse_events();
+	/// @brief Handle key press events.
+	void handle_keyboard_events();
+	/// @brief Play all the animations and manage them
+	void play_animations();
 
 	/// @brief Send event to the widget along with current cursor position.
 	Widget *notify(Widget *w, EventType type, Point extra = Point(0, 0));
-	/// @brief Send an event to the widget.
-	/// @param w Widget to which event should be sent.
-	/// @param ev The event.
-	/// @return The widget which responsed, othewise nullptr.
-	Widget *send_event(Widget *w, Event ev);
 
 	// Window title.
 	const char *title = "EGGUI Window";
@@ -81,9 +102,11 @@ private:
 	Widget *hovering_over = nullptr;
 	// Widget over which keyboard is focused, all keypressed will to sent to it.
 	Widget *focused_on = nullptr;
+	// If any widget has requested to close the window.
+	bool close_requested = false;
 
-	// Pending animations.
-	// std::vector<Animation> animations;
+	// Pending animations along with their widgets.
+	std::vector<std::pair<Widget *, Animation>> animations;
 };
 } // namespace eggui
 

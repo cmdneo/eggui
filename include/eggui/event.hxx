@@ -18,6 +18,9 @@ enum class EventType {
 	MouseClick,
 	MouseDrag,
 	MouseMotion,
+	// Focus events
+	FocusGained,
+	FocusLost,
 	// Keyboard events
 	KeyPressed,
 	CharEntered,
