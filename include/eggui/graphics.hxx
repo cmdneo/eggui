@@ -20,6 +20,14 @@ enum class FontSize {
 
 constexpr int FONT_SIZE_COUNT = 5;
 
+/// Font size in pixels for FontSize variants, indexed by FontSize.
+constexpr int FONT_PX_SIZES[] = {14, 18, 24, 32, 42};
+
+inline int font_size_to_pixels(FontSize fsize)
+{
+	return FONT_PX_SIZES[static_cast<int>(fsize)];
+}
+
 struct RGBA {
 	constexpr RGBA(
 		std::uint8_t r_, std::uint8_t g_, std::uint8_t b_, std::uint8_t a_ = 255
@@ -63,6 +71,23 @@ Point get_total_translation();
 /// @brief Get window size in pixels
 /// @return Point: width and height
 Point get_window_size();
+
+// Mouse cursor shape TODO
+enum CursorShape {
+	Default,
+	Arrow,
+	IBeam,
+	Cross,
+	Hand,
+	ResizeEW,
+	ResizeNS,
+	ResizeNWSE,
+	ResizeNESW,
+	ResizeOmni,
+	Disallowed,
+};
+
+void set_cursor_shape(CursorShape shape);
 
 // Basic drawing functions
 // They draw according to the translation applied using
