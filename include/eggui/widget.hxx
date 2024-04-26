@@ -13,6 +13,12 @@
 
 namespace eggui
 {
+
+/// Ticks per second for update interval(if any) of widgets.
+constexpr int TICKS_PER_SECOND = 30;
+constexpr double UPDATE_DELTA_TIME = 1.0 / TICKS_PER_SECOND;
+
+/// @brief Widget abstract base class, all widget inherit from this.
 class Widget
 {
 public:
@@ -64,12 +70,12 @@ public:
 	void set_xpos(int x) { set_position(Point(x, get_position().y)); }
 	void set_ypos(int y) { set_position(Point(get_position().x, y)); }
 
-	/// @brief Checks if the `cursor` is inside the widget's boundary.
-	/// @param cursor Point
-	/// @return True if `cursor` in inside widget, false otherwise.
-	virtual bool collides_with_point(Point cursor)
+	/// @brief Checks if the `point` is inside the widget.
+	/// @param point Cursor position relative to the widget's parent.
+	/// @return Boolean.
+	virtual bool collides_with_point(Point point)
 	{
-		return cursor.is_in_box(get_position(), get_size());
+		return point.is_in_box(get_position(), get_size());
 	}
 
 	/// @brief Calculates the absolute position of the widget on the screen.
@@ -84,7 +90,7 @@ public:
 
 	// We wrap all the drawing and notification methods to setup
 	// the pen and adjust mouse position relative to the widget.
-	// Actual implementations are in the `*_impl` virtual method.
+	// Actual implementations are in `*_impl` virtual methods.
 	//--------------------------------------------------------------------
 
 	/// @brief Handle the event or pass it onto its eligible child(if any).
@@ -98,17 +104,6 @@ public:
 	/// @brief Draw the widget
 	/// @note For overriding override the `draw_impl` method.
 	void draw();
-	// Additional Helper functions
-
-	/// @brief Transforms event cursor to be relative to the current widget,
-	/// that is the cursor will be relative to the parent, just like position.
-	/// @param ev Event
-	/// @return Event with transformed cursor
-	Event pass_event(Event ev)
-	{
-		ev.cursor -= get_position();
-		return ev;
-	}
 
 protected:
 	/// @brief Does the event handling, called by `notify`.
@@ -135,6 +130,7 @@ private:
 	bool is_drawing_visible = false;
 };
 
+/// @brief Abstract base class for interactable widgets.
 class Interactive : public Widget
 {
 public:
@@ -169,10 +165,6 @@ private:
 	bool is_disabled_ = false;
 };
 
-class Animatable : public Widget
-{
-};
-
 // Types for configuring layout and drawing
 //---------------------------------------------------------
 enum class Alignment {
@@ -193,7 +185,7 @@ enum class Fill {
 	RowNColumn,
 };
 
-// Direction can be used as bit flags extracting by its underying integer.
+// Direction can be used as bit flags by extracting its underlying integer.
 enum class Direction : std::uint8_t {
 	Top = 1,
 	Bottom = 1 << 1,
@@ -209,7 +201,6 @@ enum class Direction : std::uint8_t {
 // Using a large enough value but not the maximum ensures no overflow when
 // doing arithmetic with it, and a large enough size for all screens.
 constexpr Point UNLIMITED_MAX_SIZE(1e7, 1e7);
-
 } // namespace eggui
 
 #endif
