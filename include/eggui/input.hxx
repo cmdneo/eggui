@@ -17,7 +17,6 @@ protected:
 
 private:
 	EditableTextBox text;
-	bool cursor_vis = true;
 };
 } // namespace eggui
 

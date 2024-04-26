@@ -9,6 +9,7 @@ TextInput::TextInput(int w, int h)
 	: Interactive(w, h)
 	, text(w, h, "abc123")
 {
+	text.set_cursor(false);
 }
 
 Widget *TextInput::notify_impl(Event ev)
@@ -17,31 +18,37 @@ Widget *TextInput::notify_impl(Event ev)
 		switch (tick) {
 		case 0:
 			text.set_cursor(true);
-			break;
+			return true;
 		case 15:
 			text.set_cursor(false);
-			break;
-
-		default:
-			return false;
+			return true;
 		}
 
-		return true;
+		return false;
 	};
 
 	// TODO Handle more possible keypresses and text select.
 	switch (ev.type) {
+	case EventType::FocusGained:
+		ev.window.request_animation(
+			this, Animation(TICKS_PER_SECOND, 0, true, blink)
+		);
+		break;
+
+	case EventType::FocusLost:
+		text.set_cursor(false);
+		ev.window.remove_animations(this);
+
 	case EventType::MouseIn:
 		set_cursor_shape(CursorShape::IBeam);
-		// ev.window.request_animation(this);
 		return this;
 
 	case EventType::MouseOut:
 		set_cursor_shape(CursorShape::Default);
-		// ev.window.stop_animation(this);
 		return this;
 
 	case EventType::MousePressed:
+		ev.window.request_focus(this);
 		text.notify(ev);
 		return this;
 
