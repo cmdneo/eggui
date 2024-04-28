@@ -1,5 +1,4 @@
 #include <cassert>
-#include <climits>
 
 #include "raylib/raylib.h"
 
@@ -47,7 +46,7 @@ void Window::main_loop(int width_hint, int height_hint)
 	while (!((WindowShouldClose() || close_requested) && close_action())) {
 		// Poll for events manually if nothing is drawn, since
 		// when something is drawn events are polled automatically.
-		if (!event_waiting_enabled || draw_cnt-- > 0)
+		if (draw_cnt-- > 0)
 			draw();
 		else
 			PollInputEvents();
@@ -73,6 +72,10 @@ void Window::remove_animations(Widget *w)
 
 void Window::request_focus(Interactive *w)
 {
+	// Do not change anything if already focused.
+	if (w == focused_on)
+		return;
+
 	if (focused_on)
 		notify(focused_on, EventType::FocusLost);
 
@@ -258,7 +261,7 @@ void Window::handle_keyboard_events()
 void Window::play_animations()
 {
 	for (auto &a : animations)
-		a.second.update();
+		draw_cnt = a.second.update() ? 1 : draw_cnt;
 
 	swap_remove_if(animations, [](const auto &a) {
 		return a.second.has_ended();
