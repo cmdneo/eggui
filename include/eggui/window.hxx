@@ -4,6 +4,7 @@
 #include <memory>
 #include <utility>
 #include <functional>
+#include <memory>
 #include <vector>
 
 #include "widget.hxx"
@@ -16,7 +17,7 @@ namespace eggui
 class Window
 {
 public:
-	Window(std::unique_ptr<Container> container)
+	Window(std::shared_ptr<Container> container)
 		: root_widget(std::move(container))
 	{
 	}
@@ -27,7 +28,7 @@ public:
 
 	/// @brief Action to be performed when closing
 	/// @param callback Callback, window is closed if it returns true.
-	void set_close_action(std::function<bool()> callback)
+	void set_close_action(std::function<bool(Window &)> callback)
 	{
 		close_action = callback;
 	}
@@ -48,13 +49,13 @@ public:
 	void request_animation(Widget *w, Animation animation);
 	/// @brief Remove all animations associated with the widget.
 	/// @param w The widget.
-	void remove_animations(Widget *w);
+	void request_remove_animations(Widget *w);
 
 	/// @brief Provide focus to the widget, removing earlier focus if any.
 	/// @param w The interactive widget to be focused on.
 	void request_focus(Interactive *w);
 
-	/// @brief Request the window to close the window and ends its main loop.
+	/// @brief Request the window to close the window and end its main loop.
 	/// @param w Requesting widget.
 	void request_close_window(Widget *w);
 
@@ -77,16 +78,21 @@ private:
 	/// @brief Play all the animations and manage them
 	void play_animations();
 
-	/// @brief Send event to the widget along with current cursor position.
-	Widget *notify(Widget *w, EventType type, Point extra = Point(0, 0));
+	/// @brief Send event to the widget along with current cursor position
+	/// and record(as `draw_cnt > 0`) if the widget responded.
+	/// @return The widget which responded to the event.
+	Widget *notify_n_ack(Widget *w, EventType type, Point extra = Point(0, 0));
+	/// @brief Get time elapsed since last update.
+	/// @return Delta time.
+	double get_update_dt() const;
 
 	// Window title.
 	const char *title = "EGGUI Window";
 	// The top level widget, generally a container.
-	std::unique_ptr<Widget> root_widget;
+	std::shared_ptr<Widget> root_widget;
 	// Function to be run if the user tries to close the window.
 	// Returns true if window should be closed immediately.
-	std::function<bool()> close_action = []() { return true; };
+	std::function<bool(Window &)> close_action = [](Window &) { return true; };
 
 	// UI debug mode setting
 	bool debug_borders_enabled = false;
@@ -94,6 +100,8 @@ private:
 	bool event_waiting_enabled = false;
 	// Number of times widgets should be drawn after a change.
 	int draw_cnt = 1;
+	// Time since update was last called.
+	double last_update_time = 0;
 
 	// Widget over which mouse button has been pressed but not released yet.
 	Widget *mouse_down_over = nullptr;
@@ -107,6 +115,7 @@ private:
 
 	// Pending animations along with their widgets.
 	std::vector<std::pair<Widget *, Animation>> animations;
+	double animation_lag = 0;
 };
 } // namespace eggui
 

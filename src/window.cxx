@@ -11,8 +11,6 @@
 
 using namespace eggui;
 
-constexpr int DEFAULT_UI_FPS = TICKS_PER_SECOND;
-
 inline Point vec2_to_point(Vector2 v) { return Point(v.x, v.y); };
 
 inline Point get_mouse_pos() { return vec2_to_point(GetMousePosition()); }
@@ -31,27 +29,37 @@ void Window::main_loop(int width_hint, int height_hint)
 	SetTraceLogLevel(LOG_WARNING);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
 	InitWindow(size.x, size.y, title);
+	init_graphics();
 
+	// This is not really needed since we also check for frame timing manually,
+	// but just in case the default FPS is too low and it sleeps for too long.
 	if (!IsWindowState(FLAG_VSYNC_HINT))
-		SetTargetFPS(DEFAULT_UI_FPS);
+		SetTargetFPS(TICKS_PER_SECOND);
 
 	set_resize_limits();
 
 	SetExitKey(KEY_NULL); // Do not exit on ESC.
 	EnableEventWaiting(); // Sleep untill a new input event arrives.
 	event_waiting_enabled = true;
+	last_update_time = GetTime();
 
-	init_graphics();
-
-	while (!((WindowShouldClose() || close_requested) && close_action())) {
-		// Poll for events manually if nothing is drawn, since
-		// when something is drawn events are polled automatically.
-		if (draw_cnt-- > 0)
-			draw();
-		else
-			PollInputEvents();
-
+	while (!((WindowShouldClose() || close_requested) && close_action(*this))) {
 		update();
+		last_update_time = GetTime();
+
+		// Poll for events manually when nothing is drawn, since when we draw
+		// events are polled by the draw method.
+		if (draw_cnt > 0) {
+			draw_cnt--;
+			draw();
+		} else {
+			PollInputEvents();
+		}
+
+		// Manage frame timing as per the update interval, sleep if time left.
+		if (auto extra = UPDATE_DELTA_TIME - get_update_dt(); extra > 0) {
+			WaitTime(extra);
+		}
 	}
 
 	deinit_graphics();
@@ -63,7 +71,7 @@ void Window::request_animation(Widget *w, Animation animation)
 	animations.push_back({w, animation});
 }
 
-void Window::remove_animations(Widget *w)
+void Window::request_remove_animations(Widget *w)
 {
 	swap_remove_if(animations, [w](const auto &anim) {
 		return anim.first == w;
@@ -77,10 +85,10 @@ void Window::request_focus(Interactive *w)
 		return;
 
 	if (focused_on)
-		notify(focused_on, EventType::FocusLost);
+		notify_n_ack(focused_on, EventType::FocusLost);
 
 	focused_on = w;
-	notify(focused_on, EventType::FocusGained);
+	notify_n_ack(focused_on, EventType::FocusGained);
 }
 
 void Window::request_close_window(Widget *w)
@@ -91,6 +99,7 @@ void Window::request_close_window(Widget *w)
 
 void Window::update()
 {
+	// If window is resized then just re-layout and ignore any other events.
 	if (IsWindowResized()) {
 		layout(Point(GetScreenWidth(), GetScreenHeight()));
 		set_resize_limits();
@@ -101,24 +110,28 @@ void Window::update()
 	if (IsKeyPressed(KEY_ESCAPE)) {
 		debug_borders_enabled = !debug_borders_enabled;
 		draw_cnt = 1;
-		return;
 	}
 #endif
 
-	// If there are any animations pending then disable event waiting.
+	// Any new animations added by event handlers will be started in the next
+	// frame, as we also need to start the timer(if no animations were playing).
+	play_animations();
+	handle_mouse_events();
+	handle_keyboard_events();
+
+	// If there are any animations pending then keep event waiting disabled.
+	// Also start the animation timer to ensure accurate animation step
+	// timings regardless of the update interval.
 	if (!animations.empty()) {
 		if (event_waiting_enabled) {
 			DisableEventWaiting();
+			animation_lag = 0;
 			event_waiting_enabled = false;
 		}
 	} else if (!event_waiting_enabled) {
 		EnableEventWaiting();
 		event_waiting_enabled = true;
 	}
-
-	handle_mouse_events();
-	handle_keyboard_events();
-	play_animations();
 }
 
 void Window::draw()
@@ -167,33 +180,35 @@ void Window::set_resize_limits()
 
 void Window::handle_mouse_events()
 {
-	// We always send the scroll event, since it is used by
-	// scrollable views, which are not interactive in a general way.
-	// TODO Better classify which widgets can recieve which events.
+	// We always send the scroll event, since it is used by scrollable views,
+	// which are just containers and are not interactive in a general way.
 	auto scroll = vec2_to_point(GetMouseWheelMoveV());
 	if (scroll.x != 0 || scroll.y != 0)
-		notify(root_widget.get(), EventType::Scroll, scroll);
+		notify_n_ack(root_widget.get(), EventType::Scroll, scroll);
 
 	Widget *hovered = nullptr;
 	// Check if the widget is interactive by sending a special event,
 	// then only it can be interacted with using the mouse/keyboard.
-	if (root_widget->collides_with_point(get_mouse_pos()))
-		hovered = notify(root_widget.get(), EventType::IsInteractive);
+	if (root_widget->collides_with_point(get_mouse_pos())) {
+		hovered = root_widget->notify(
+			Event(*this, EventType::IsInteractive, get_mouse_pos())
+		);
+	}
 
 	// *** Handle mouse button press/release and drag ***
 	if (!mouse_down_over) {
 		// Some widget responds to the mouse press.
 		if (hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-			mouse_down_over = notify(hovered, EventType::MousePressed);
+			mouse_down_over = notify_n_ack(hovered, EventType::MousePressed);
 	}
 	// If mouse released while it was down over some widget.
 	else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
 		// Register a click only if the mouse button is released while
 		// hovering over the same widget it was pressed upon.
 		if (mouse_down_over == hovered)
-			notify(mouse_down_over, EventType::MouseClick);
+			notify_n_ack(mouse_down_over, EventType::MouseClick);
 
-		notify(mouse_down_over, EventType::MouseReleased);
+		notify_n_ack(mouse_down_over, EventType::MouseReleased);
 		mouse_down_over = nullptr;
 	}
 	// If the mouse button was pressed over some widget and has not been
@@ -204,7 +219,7 @@ void Window::handle_mouse_events()
 		// Mouse moved while a mouse button is pressed over the widget.
 		auto delta = vec2_to_point(GetMouseDelta());
 		if (delta.x != 0 || delta.y != 0)
-			notify(mouse_down_over, EventType::MouseDrag, delta);
+			notify_n_ack(mouse_down_over, EventType::MouseDrag, delta);
 	}
 
 	// If some widget had acquired focus earlier but then the mouse button is
@@ -213,14 +228,14 @@ void Window::handle_mouse_events()
 	// interactive but a focusable widget is always interactive.
 	if (focused_on && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)
 		&& hovered != focused_on) {
-		notify(focused_on, EventType::FocusLost);
+		notify_n_ack(focused_on, EventType::FocusLost);
 		focused_on = nullptr;
 	}
 
 	// If a new widget(or none) is being hovered over then notify the
 	// older widget that it is no longer being hovered over.
 	if (hovering_over && hovering_over != hovered) {
-		notify(hovering_over, EventType::MouseOut);
+		notify_n_ack(hovering_over, EventType::MouseOut);
 		hovering_over = nullptr;
 	}
 
@@ -232,43 +247,47 @@ void Window::handle_mouse_events()
 	// notify the new widget that it is being hovered over.
 	if (hovering_over == hovered) {
 		auto delta = vec2_to_point(GetMouseDelta());
-		notify(hovered, EventType::MouseMotion, delta);
+		notify_n_ack(hovered, EventType::MouseMotion, delta);
 	} else {
-		notify(hovered, EventType::MouseIn);
+		notify_n_ack(hovered, EventType::MouseIn);
 		hovering_over = hovered;
 	}
 }
 
 void Window::handle_keyboard_events()
 {
-	if (!hovering_over)
+	if (!focused_on)
 		return;
 
 	// TODO Cleanup this keyboard testing stuff
 	int charc = GetCharPressed();
 	if (charc != 0) {
 		Event ev(*this, EventType::CharEntered, charc);
-		hovering_over->notify(ev);
+		focused_on->notify(ev);
 	}
 
 	int keyc = GetKeyPressed();
 	if (charc == 0 && keyc != KEY_NULL) {
 		Event ev(*this, EventType::KeyPressed, keyc);
-		hovering_over->notify(ev);
+		focused_on->notify(ev);
 	};
 }
 
 void Window::play_animations()
 {
-	for (auto &a : animations)
-		draw_cnt = a.second.update() ? 1 : draw_cnt;
+	// Fixed step timing method.
+	for (animation_lag += get_update_dt(); animation_lag >= UPDATE_DELTA_TIME;
+		 animation_lag -= UPDATE_DELTA_TIME) {
+		for (auto &a : animations)
+			draw_cnt = a.second.update() ? 1 : draw_cnt;
 
-	swap_remove_if(animations, [](const auto &a) {
-		return a.second.has_ended();
-	});
+		swap_remove_if(animations, [](const auto &a) {
+			return a.second.has_ended();
+		});
+	}
 }
 
-Widget *Window::notify(Widget *w, EventType type, Point extra)
+Widget *Window::notify_n_ack(Widget *w, EventType type, Point extra)
 {
 	assert(w);
 
@@ -276,7 +295,9 @@ Widget *Window::notify(Widget *w, EventType type, Point extra)
 	ev.delta = extra;
 
 	auto ret = w->notify(ev);
-	draw_cnt = ret ? 1 : draw_cnt;
+	draw_cnt = ret && draw_cnt == 0 ? 1 : draw_cnt;
 
 	return ret;
 }
+
+double Window::get_update_dt() const { return GetTime() - last_update_time; }
