@@ -39,7 +39,7 @@ protected:
 class PaddedBox : public Container
 {
 public:
-	PaddedBox(std::unique_ptr<Widget> child_)
+	PaddedBox(std::shared_ptr<Widget> child_)
 		: child(std::move(child_))
 	{
 	}
@@ -56,7 +56,7 @@ protected:
 	void draw_debug_impl() override;
 
 private:
-	std::unique_ptr<Widget> child;
+	std::shared_ptr<Widget> child;
 
 	int top_pad = 0;
 	int bottom_pad = 0;
@@ -76,13 +76,13 @@ public:
 	{
 	}
 
-	/// @brief Expand the box to fill the available space along the orientation.
+	/// @brief Expand the box to fill space available along the orientation.
 	/// @param can_expand Value
 	void set_expand_to_fill(bool can_expand) { expand_to_fill = can_expand; }
 	void set_gap(int gap) { item_gap = gap; }
 
-	Widget *add_widget_start(std::unique_ptr<Widget> child);
-	Widget *add_widget_end(std::unique_ptr<Widget> child);
+	Widget *add_widget_start(std::shared_ptr<Widget> child);
+	Widget *add_widget_end(std::shared_ptr<Widget> child);
 
 	void layout_children(Point avail_size) override;
 	Point calc_layout_info() override;
@@ -94,7 +94,7 @@ protected:
 
 private:
 	struct Child {
-		std::unique_ptr<Widget> widget;
+		std::shared_ptr<Widget> widget;
 		Alignment align;
 		Fill fill;
 	};
@@ -141,7 +141,7 @@ public:
 	/// @param row_span Default=1
 	/// @return Pointer to the child if added, otherwise nullptr.
 	Widget *add_widget_beside(
-		std::unique_ptr<Widget> child, const Widget *beside, Direction stick,
+		std::shared_ptr<Widget> child, const Widget *beside, Direction stick,
 		int column_span = 1, int row_span = 1
 	);
 
@@ -154,7 +154,7 @@ public:
 	/// @param row_span Default=1
 	/// @return Pointer to the child if added, otherwise nullptr.
 	Widget *add_widget(
-		std::unique_ptr<Widget> child, int column, int row, int column_span = 1,
+		std::shared_ptr<Widget> child, int column, int row, int column_span = 1,
 		int row_span = 1
 	);
 
@@ -170,10 +170,10 @@ private:
 	void alloc_row_col_data();
 
 	struct Child {
-		std::unique_ptr<Widget> widget;
-		// Top left column and row
+		std::shared_ptr<Widget> widget;
+		// Top left position: column and row.
 		Point grid_pos;
-		// Number of columns and rows spanned
+		// Number of columns and rows spanned.
 		Point span;
 		Alignment h_align;
 		Alignment v_align;
