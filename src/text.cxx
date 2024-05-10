@@ -1,6 +1,7 @@
 #include <cassert>
 #include <algorithm>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <utility>
 
@@ -23,10 +24,9 @@ EditableTextBox::EditableTextBox(
 	int w, int h, std::string txt, FontSize font_size_
 )
 	: Interactive(w, h)
-	, text(std::move(txt))
 	, font_size(font_size_)
 {
-	calc_cursor_offset();
+	set_text(std::move(txt));
 }
 
 void EditableTextBox::set_font_size(FontSize size)
@@ -34,6 +34,20 @@ void EditableTextBox::set_font_size(FontSize size)
 	font_size = size;
 	calc_cursor_offset();
 }
+
+void EditableTextBox::set_cursor_opacity(float opacity)
+{
+	cursor_opacity = std::clamp(255. * opacity, 0., 255.);
+}
+
+void EditableTextBox::set_text(std::string txt)
+{
+	text = std::move(txt);
+	cursor_at = 0;
+	cursor_xpos = 0;
+}
+
+std::string_view EditableTextBox::get_text() const { return text; }
 
 int EditableTextBox::move_cursor(int delta)
 {
@@ -67,9 +81,19 @@ void EditableTextBox::delete_before_cursor()
 	if (cursor_at == 0)
 		return;
 
-	cursor_xpos -= get_char_width(text[cursor_at - 1], font_size);
+	char c = text[cursor_at - 1];
+	cursor_xpos -= get_char_width(c, font_size);
+
 	text.erase(text.begin() + cursor_at - 1);
 	cursor_at--;
+}
+
+void EditableTextBox::delete_after_cursor()
+{
+	if (cursor_at == static_cast<int>(text.size()))
+		return;
+
+	text.erase(text.begin() + cursor_at);
 }
 
 Widget *EditableTextBox::notify_impl(Event ev)
@@ -81,6 +105,7 @@ Widget *EditableTextBox::notify_impl(Event ev)
 	for (unsigned i = 0; i < text.size(); ++i) {
 		float width = get_char_width(text[i], font_size);
 
+		// TODO Add support correct cursor position on scrolled text.
 		// Move the cursor to the left of char if clicked in left-half, and
 		// move the cursor to the right of the char if pressed in right-half.
 		if (xpos > ev.cursor.x) {
@@ -102,16 +127,18 @@ Widget *EditableTextBox::notify_impl(Event ev)
 
 void EditableTextBox::draw_impl()
 {
-	constexpr int DRAW_BUF_SIZE = 255;
-	char draw_buf[DRAW_BUF_SIZE + 1]{};
+	// constexpr int DRAW_BUF_SIZE = 255;
+	// char draw_buf[DRAW_BUF_SIZE + 1]{};
 
-	draw_text(Point(0, 0), TEXT_COLOR, text.c_str(), font_size);
+	// Scroll the text to the cursor position on overflow.
+	float x_offset = std::min(0.f, get_size().x - cursor_xpos - CURSOR_WIDTH);
+	draw_text(Point(x_offset, 0), TEXT_COLOR, text.c_str(), font_size);
 
-	if (!cursor_visible)
-		return;
 	// Draw the cursor
-	Point size(2, font_size_to_pixels(font_size));
-	draw_rect(Point(cursor_xpos, 0), size, CURSOR_COLOR);
+	auto ccol = CURSOR_COLOR;
+	ccol.a = cursor_opacity;
+	Point size(CURSOR_WIDTH, font_size_to_pixels(font_size));
+	draw_rect(Point(x_offset + cursor_xpos, 0), size, ccol);
 }
 
 void EditableTextBox::calc_cursor_offset()
