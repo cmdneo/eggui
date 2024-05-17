@@ -1,5 +1,4 @@
 #include <cassert>
-#include <cmath>
 #include <algorithm>
 #include <memory>
 #include <vector>
@@ -344,9 +343,6 @@ Widget *Grid::add_widget(
 		.widget = std::move(child),
 		.grid_pos = pos,
 		.span = span,
-		.h_align = Alignment::Center,
-		.v_align = Alignment::Center,
-		.fill = Fill::RowNColumn,
 	});
 
 	return ret_ptr;
@@ -429,8 +425,8 @@ void Grid::layout_children(Point size_hint)
 	// Cell(s) may become larger than the widget due to another widget in the
 	// same row/column having larger size.
 	// Then stretch accordingly and layout each child.
-	for (auto &c : children) {
-		auto [start, end] = pair(c.grid_pos, c.grid_pos + c.span);
+	for (auto &[w, grid_pos, span] : children) {
+		auto [start, end] = pair(grid_pos, grid_pos + span);
 		end -= Point(1, 1);
 		Point avail_size(
 			col_offsets[end.x] - col_offsets[start.x] + col_sizes[end.x],
@@ -439,18 +435,18 @@ void Grid::layout_children(Point size_hint)
 
 		// Setting the size does layout if container
 		auto size = calc_stretched_size(
-			c.widget->get_min_size(), c.widget->get_max_size(), avail_size,
-			c.fill
+			w->get_min_size(), w->get_max_size(), avail_size, w->get_fill()
 		);
-		c.widget->set_size(size);
+		w->set_size(size);
 
-		Point pos(col_offsets[c.grid_pos.x], row_offsets[c.grid_pos.y]);
+		Point pos(col_offsets[grid_pos.x], row_offsets[grid_pos.y]);
 		pos += calc_align_offset(
-			c.widget->get_size(), avail_size, c.h_align, c.v_align
+			w->get_size(), avail_size, w->get_horiz_align(), w->get_vert_align()
 		);
-		c.widget->set_position(pos);
+		w->set_position(pos);
 	}
 
+	assert(cont_size == size_hint);
 	Widget::set_size(cont_size);
 }
 

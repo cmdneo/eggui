@@ -2,21 +2,30 @@
 #define WIDGET_HXX_INCLUDED
 
 #include <vector>
-#include <memory>
 #include <utility>
 
-#include "point.hxx" // Re-export and use
-#include "event.hxx" // Re-export and use
+#include "point.hxx" // Export and use
+#include "event.hxx" // Export and use
 
 #include "graphics.hxx"
 #include "canvas.hxx"
 
 namespace eggui
 {
+// Types for widget layout inside a container
+//---------------------------------------------------------
+enum class Alignment {
+	Start,
+	Center,
+	End,
+};
 
-/// Ticks per second for update interval(if any) of widgets.
-constexpr int TICKS_PER_SECOND = 30;
-constexpr double UPDATE_DELTA_TIME = 1.0 / TICKS_PER_SECOND;
+enum class Fill {
+	None,
+	Row,
+	Column,
+	RowNColumn,
+};
 
 /// @brief Widget abstract base class, all widget inherit from this.
 class Widget
@@ -69,6 +78,15 @@ public:
 
 	void set_xpos(int x) { set_position(Point(x, get_position().y)); }
 	void set_ypos(int y) { set_position(Point(get_position().x, y)); }
+
+	void set_vert_align(Alignment alignment) { v_align = alignment; }
+	Alignment get_vert_align() const { return v_align; }
+
+	void set_horiz_align(Alignment alignment) { h_align = alignment; }
+	Alignment get_horiz_align() const { return h_align; }
+
+	void set_fill(Fill fill_mode) { fill = fill_mode; }
+	Fill get_fill() const { return fill; }
 
 	/// @brief Checks if the `point` is inside the widget.
 	/// @param point Cursor position relative to the widget's parent.
@@ -124,6 +142,12 @@ private:
 	Point min_box_size;
 	/// Maximum widget size
 	Point max_box_size;
+	// Vertical alignment inside a container
+	Alignment v_align = Alignment::Center;
+	// Horizontal alignment inside a container
+	Alignment h_align = Alignment::Center;
+	// Fill mode for excess size inside a container
+	Fill fill = Fill::RowNColumn;
 
 	/// Keeps track of whether the drawing will be visible or not,
 	/// only valid after we start drawing. For debugging purposes only.
@@ -165,24 +189,11 @@ private:
 	bool is_disabled_ = false;
 };
 
-// Types for configuring layout and drawing
-//---------------------------------------------------------
-enum class Alignment {
-	Start,
-	Center,
-	End,
-};
-
+// Types for configuring widget properties
+//-------------------------------------------------------------------
 enum class Orientation {
 	Horizontal = 0,
 	Vertical = 1,
-};
-
-enum class Fill {
-	None,
-	Row,
-	Column,
-	RowNColumn,
 };
 
 // Direction can be used as bit flags by extracting its underlying integer.
@@ -197,10 +208,15 @@ enum class Direction : std::uint8_t {
 	BottomRight = Bottom | Right,
 };
 
+/// Ticks per second for update interval(if any) of widgets.
+constexpr int TICKS_PER_SECOND = 30;
+constexpr double UPDATE_DELTA_TIME = 1.0 / TICKS_PER_SECOND;
+
+// TODO Use a better method for arbitrarily growable widgets.
 /// Represents size for an arbtriararily growable widget.
 // Using a large enough value but not the maximum ensures no overflow when
 // doing arithmetic with it, and a large enough size for all screens.
-constexpr Point UNLIMITED_MAX_SIZE(1e7, 1e7);
+constexpr Point UNLIMITED_MAX_SIZE(1e6, 1e6);
 } // namespace eggui
 
 #endif

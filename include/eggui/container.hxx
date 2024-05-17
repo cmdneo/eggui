@@ -175,10 +175,7 @@ private:
 		Point grid_pos;
 		// Number of columns and rows spanned.
 		Point span;
-		Alignment h_align;
-		Alignment v_align;
-		Fill fill;
-	};
+};
 
 	std::vector<Child> children;
 
