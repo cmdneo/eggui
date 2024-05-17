@@ -34,15 +34,15 @@ Point calc_stretched_size(
 	Point min_size, Point max_size, Point avail_size, Fill fill
 )
 {
-	avail_size = clamp_components(avail_size, min_size, max_size);
+	max_size = min_components(avail_size, max_size);
 
 	switch (fill) {
 	case Fill::Column:
-		return Point(avail_size.x, min_size.y);
+		return Point(max_size.x, min_size.y);
 	case Fill::Row:
-		return Point(min_size.x, avail_size.y);
+		return Point(min_size.x, max_size.y);
 	case Fill::RowNColumn:
-		return avail_size;
+		return max_size;
 	case Fill::None:
 		return min_size;
 	}
@@ -51,13 +51,13 @@ Point calc_stretched_size(
 	return Point(0, 0);
 }
 
-float calc_box_offsets(
-	const std::vector<float> &sizes, float gap, std::vector<float> &result
+int calc_box_offsets(
+	const std::vector<int> &sizes, int gap, std::vector<int> &result
 )
 {
 	result.resize(sizes.size());
 
-	double last_at = 0.;
+	int last_at = 0;
 	for (unsigned i = 0; i < sizes.size(); ++i) {
 		result[i] = last_at;
 		last_at += sizes[i] + gap;
@@ -68,41 +68,49 @@ float calc_box_offsets(
 }
 
 void calc_expanded_size(
-	const std::vector<float> &min_sizes, const std::vector<float> &max_sizes,
-	float avail_size, std::vector<float> &result
+	const std::vector<int> &min_sizes, const std::vector<int> &max_sizes,
+	int avail_size, std::vector<int> &result
 )
 {
 	assert(min_sizes.size() == max_sizes.size());
 	result.resize(min_sizes.size());
 
-	double min_size = 0;
+	int min_size = 0;
 	for (auto v : min_sizes)
 		min_size += v;
 
-	double max_size = 0;
+	int max_size = 0;
 	for (auto v : max_sizes)
 		max_size += v;
 
-	avail_size = std::min(float(max_size), avail_size);
+	max_size = std::min(max_size, avail_size);
 
 	// If none of the boxes can be expanded then just set it to zero.
 	double inc_frac = 0;
-	if (auto diff = max_size - min_size; diff > POINT_EPSILON)
-		inc_frac = (avail_size - min_size) / diff;
+	if (auto diff = max_size - min_size; diff > 0)
+		inc_frac = (max_size - min_size) / diff;
 
+	int unused_size = max_size;
 	for (unsigned i = 0; i < min_sizes.size(); ++i) {
-		double extra = max_sizes[i] - min_sizes[i];
+		int extra = max_sizes[i] - min_sizes[i];
 		result[i] = min_sizes[i] + inc_frac * extra;
+		unused_size -= result[i];
 	}
+
+	// Since conversion to int truncates the fractional part we add the
+	// remaining unused size so that we use all the available space.
+	// Beacause fractional < 1, therefore: unused_size <= number_of_elements.
+	assert(unused_size <= result.size());
+	for (int i = 0; i < unused_size && i < result.size(); ++i)
+		result[i]++;
 }
 
-float calc_length_with_gaps(const std::vector<float> &lens, int gap)
+int calc_length_with_gaps(const std::vector<int> &lengths, int gap)
 {
-	float sum = 0;
-	for (auto v : lens)
+	int sum = 0;
+	for (auto v : lengths)
 		sum += v;
 
-	return sum + gap * (lens.size() - 1);
+	return sum + gap * (lengths.size() - 1);
 };
-
 } // namespace eggui

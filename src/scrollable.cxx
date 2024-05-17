@@ -1,6 +1,7 @@
 #include <cassert>
 #include <algorithm>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <utility>
 
@@ -13,12 +14,7 @@
 
 using namespace eggui;
 
-using std::reference_wrapper;
-
 /// @brief Calculates slider position and scroll fraction for a scroll bar.
-/// @param bar_len Length of the scrollbar.
-/// @param slider_len Length of the slider.
-/// @param click_pos Position where scroll bar was clicked on.
 /// @return Scroll fraction in range [0, 1]
 float calc_scroll_fraction(int bar_len, int slider_len, int click_pos)
 {
@@ -26,15 +22,12 @@ float calc_scroll_fraction(int bar_len, int slider_len, int click_pos)
 	float end = bar_len - slider_len / 2.;
 	float pos = std::clamp(float(click_pos), start, end);
 
-	if (auto space = end - start; space > POINT_EPSILON)
+	if (auto space = end - start; space > 0)
 		return (pos - start) / space;
 	return 0;
 }
 
 /// @brief Calculate slider center position for the scroll fraction.
-/// @param bar_len Length of the scrollbar.
-/// @param slider_len Length of the slider.
-/// @param scroll_frac Slider scroll fraction.
 /// @return Slider center position.
 int calc_slider_pos(int bar_len, int slider_len, float scroll_frac)
 {
@@ -43,9 +36,6 @@ int calc_slider_pos(int bar_len, int slider_len, float scroll_frac)
 }
 
 /// @brief Calculates the container start position relative to scroll view.
-/// @param view_len Length of the view.
-/// @param cont_len Length of the container.
-/// @param scroll_frac Scroll amount.
 /// @return container position relative to the view, is awlays <= 0.
 int calc_container_pos(int view_len, int cont_len, float scroll_frac)
 {
@@ -54,9 +44,6 @@ int calc_container_pos(int view_len, int cont_len, float scroll_frac)
 }
 
 /// @brief Calculates scrolled fraction for a container in a view.
-/// @param view_len View length.
-/// @param cont_len Container length.
-/// @param cont_pos Container position relative to the view.
 /// @return Scrolled fraction in range [0, 1].
 float calc_scroll_frac(int view_len, int cont_len, int cont_pos)
 {
@@ -67,10 +54,7 @@ float calc_scroll_frac(int view_len, int cont_len, int cont_pos)
 }
 
 /// @brief Calculate slider length for the amount of scroll needed.
-/// @param view_len Lenght of the scroll view visible, it also bar length.
-/// @param cont_len Container length.
 /// @return Slider length
-/// @note
 int calc_slider_len(int view_len, int cont_len)
 {
 	// Slider length should decrease with increase in overflow,
@@ -81,26 +65,21 @@ int calc_slider_len(int view_len, int cont_len)
 }
 
 /// @brief Calculate the new container position as the view grows/shrinks.
-/// @param old_view_len Old view length.
-/// @param new_view_len New view length.
-/// @param cont_len Container lenght.
-/// @param old_cont_pos Container position in the old view.
-/// @return New container position.
+/// @return New container position in scrollview.
 int calc_new_container_pos(
 	int old_view_len, int new_view_len, int cont_len, int old_cont_pos
 )
 {
 	assert(old_cont_pos <= 0);
+	if (new_view_len >= cont_len)
+		return 0;
 
+	// Constraint: top_ovf + bottom_ovf + old_view_len = cont_len
 	int top_ovf = -old_cont_pos;
 	int bottom_ovf = old_cont_pos + cont_len - old_view_len;
 
-	// TODO calc_new_container_pos
-	// For now we reveal/hide from the bottom,
-	// if content hidden at the bottom is over then we reveal from the top.
+	// Bottom portion is revealed/hidden first if available, then top.
 	int delta = new_view_len - old_view_len;
-	if (bottom_ovf < 0) {
-	}
 
 	return 0;
 }
@@ -162,11 +141,11 @@ Widget *ScrollBar::notify_impl(Event ev)
 	if (handle_mouse_hover_events(ev))
 		return this;
 
-	// If pressed anywhere on the bar but not on the slider then,
-	// we pretend that the slider was dragged to that position.
 	if (ev.type != EventType::MousePressed)
 		return Interactive::notify_impl(ev);
 
+	// If pressed anywhere on the bar but not on the slider then,
+	// we pretend that the slider was dragged to that position.
 	auto pos = slider.get_center_position();
 	Event dragged(ev.window, EventType::MouseDrag, pos);
 	dragged.delta = ev.cursor - pos;
@@ -225,7 +204,7 @@ void ScrollBar::set_slider_len(int len)
 
 // VScrollView members
 //---------------------------------------------------------
-VScrollView::VScrollView(std::unique_ptr<Widget> child_, int w, int h)
+VScrollView::VScrollView(std::shared_ptr<Widget> child_, int w, int h)
 	: Container(w, h)
 	, child(std::move(child_))
 {
@@ -264,7 +243,10 @@ void VScrollView::layout_children(Point size_hint)
 	);
 
 	child->set_size(child_size);
-	child->set_ypos(child_pos);
+	if (AXIS == ScrollBar::Axis::X)
+		child->set_xpos(child_pos);
+	else
+		child->set_ypos(child_pos);
 
 	auto frac = calc_scroll_frac(
 		get_size()[AXIS], child->get_size()[AXIS], child->get_position()[AXIS]
@@ -314,10 +296,10 @@ Widget *VScrollView::notify_impl(Event ev)
 
 		// Scroll gives the direction content should go, and if content goes
 		// up(-ve direction), it increases scroll fraction and vice-versa.
-		auto scroll_frac = -ev.scroll[AXIS] / child->get_size()[AXIS];
+		double scroll_frac = 1.0 * -ev.scroll[AXIS] / child->get_size()[AXIS];
 		scroll_frac *= SCROLL_FACTOR;
 		scroll_frac += scrollbar->get_scroll_fraction();
-		scroll_frac = std::clamp(scroll_frac, 0.f, 1.f);
+		scroll_frac = std::clamp(scroll_frac, 0.0, 1.0);
 		scrollbar->set_scroll_fraction(scroll_frac);
 
 		return this;

@@ -112,12 +112,12 @@ private:
 	Orientation orientation = Orientation::Horizontal;
 	// Meaning of the below depend on orientation.
 	// Relative position of cells parallel to orientation.
-	std::vector<float> cell_offsets;
+	std::vector<int> cell_offsets;
 	// Length of each cell along the orientation.
-	std::vector<float> cell_sizes;
+	std::vector<int> cell_sizes;
 	// Minimum and maximum sizes for each cell parallel to orientation.
-	std::vector<float> cell_max_sizes;
-	std::vector<float> cell_min_sizes;
+	std::vector<int> cell_max_sizes;
+	std::vector<int> cell_min_sizes;
 	// Gap between each item along the orientation.
 	int item_gap = 0;
 
@@ -183,16 +183,16 @@ private:
 	std::vector<Child> children;
 
 	// The size needed by the largest cell in row/column.
-	std::vector<float> row_sizes;
-	std::vector<float> col_sizes;
+	std::vector<int> row_sizes;
+	std::vector<int> col_sizes;
 	// Grid relative position from where the row/column starts.
-	std::vector<float> row_offsets;
-	std::vector<float> col_offsets;
+	std::vector<int> row_offsets;
+	std::vector<int> col_offsets;
 	// Maximum and minimum sizes for scaling purposes
-	std::vector<float> row_max_sizes;
-	std::vector<float> col_max_sizes;
-	std::vector<float> row_min_sizes;
-	std::vector<float> col_min_sizes;
+	std::vector<int> row_max_sizes;
+	std::vector<int> col_max_sizes;
+	std::vector<int> row_min_sizes;
+	std::vector<int> col_min_sizes;
 
 	int row_count = 0;
 	int col_count = 0;

@@ -1,9 +1,9 @@
 #ifndef SCROLLABLE_HXX_INCLUDED
 #define SCROLLABLE_HXX_INCLUDED
 
-#include <memory>
 #include <utility>
 #include <optional>
+#include <memory>
 #include <functional>
 
 #include "widget.hxx"
@@ -11,7 +11,6 @@
 
 namespace eggui
 {
-
 class ScrollSlider : public Interactive
 {
 public:
@@ -77,7 +76,7 @@ private:
 class VScrollView : public Container
 {
 public:
-	VScrollView(std::unique_ptr<Widget> child_, int w, int h);
+	VScrollView(std::shared_ptr<Widget> child_, int w, int h);
 
 	void layout_children(Point size_hint) override;
 	Point calc_layout_info() override;
@@ -91,7 +90,7 @@ private:
 	/// @brief Size occupied by the scrollbars for both axes
 	Point calc_bars_size() const;
 
-	std::unique_ptr<Widget> child = nullptr;
+	std::shared_ptr<Widget> child = nullptr;
 	std::optional<ScrollBar> scrollbar{};
 
 	static constexpr ScrollBar::Axis AXIS = ScrollBar::Axis::Y;

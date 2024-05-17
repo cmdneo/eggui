@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cmath>
 #include <algorithm>
 #include <memory>
 #include <vector>
@@ -182,13 +183,13 @@ void LinearBox::layout_children(Point size_hint)
 
 	// If the box still has space left after packing all the children then,
 	// put that space between start and end children. Thereby start children
-	// are at top/left and end children at bottom/right for orientation
+	// are at top/left and end children at bottom/right for orientations
 	// vertical/horizontal.
 	if (last_at < size_hint[axis] && !end_children.empty()) {
 		auto len_extra = size_hint[axis] - last_at;
 		ranges::for_each(
 			cell_offsets | views::drop(start_children.size()),
-			[len_extra](float &v) { v += len_extra; }
+			[len_extra](int &v) { v += len_extra; }
 		);
 	}
 
@@ -450,7 +451,6 @@ void Grid::layout_children(Point size_hint)
 		c.widget->set_position(pos);
 	}
 
-	assert(almost_eq(cont_size, size_hint));
 	Widget::set_size(cont_size);
 }
 
@@ -473,16 +473,16 @@ Point Grid::calc_layout_info()
 		auto max_size = c.widget->get_max_size();
 		auto min_size = c.widget->get_min_size();
 
-		Point gap(col_gap, row_gap);
+		const Point gap(col_gap, row_gap);
 		auto gap_taken = mul_components(c.span - Point(1, 1), gap);
 		min_size -= gap_taken;
 		max_size -= gap_taken;
 
-		float cell_w_min = 1. * min_size.x / c.span.x;
-		float cell_h_min = 1. * min_size.y / c.span.y;
+		int cell_w_min = min_size.x / c.span.x;
+		int cell_h_min = min_size.y / c.span.y;
 
-		float cell_w_max = 1. * max_size.x / c.span.x;
-		float cell_h_max = 1. * max_size.y / c.span.y;
+		int cell_w_max = max_size.x / c.span.x;
+		int cell_h_max = max_size.y / c.span.y;
 
 		auto [start, end] = pair(c.grid_pos, c.grid_pos + c.span);
 		for (int i = start.x; i < end.x; ++i) {

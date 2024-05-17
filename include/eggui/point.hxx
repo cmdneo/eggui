@@ -1,14 +1,14 @@
 #ifndef POINT_HXX_INCLUDED
 #define POINT_HXX_INCLUDED
 
-#include <cmath>
+#include <algorithm>
 
 namespace eggui
 {
 struct Point {
 	constexpr Point() = default;
 
-	constexpr Point(float x_coord, float y_coord)
+	constexpr Point(int x_coord, int y_coord)
 		: x(x_coord)
 		, y(y_coord)
 	{
@@ -16,7 +16,7 @@ struct Point {
 
 	Point get_swapped() { return Point(y, x); }
 
-	float min_coord() const { return x < y ? x : y; }
+	int min_coord() const { return x < y ? x : y; }
 
 	Point &operator+=(Point other)
 	{
@@ -32,8 +32,8 @@ struct Point {
 		return *this;
 	}
 
-	float &operator[](float i) { return i == 0 ? x : y; }
-	const float &operator[](float i) const { return i == 0 ? x : y; }
+	int &operator[](int i) { return i == 0 ? x : y; }
+	const int &operator[](int i) const { return i == 0 ? x : y; }
 
 	bool is_in_box(Point box_pos, Point box_size) const
 	{
@@ -44,13 +44,9 @@ struct Point {
 		return x >= start.x && x < end.x && y >= start.y && y < end.y;
 	}
 
-	float x = 0;
-	float y = 0;
+	int x = 0;
+	int y = 0;
 };
-
-// Good enough for UI calculations,
-// values less than this are basically treated as zeroes.
-constexpr float POINT_EPSILON = 0.01;
 
 inline Point operator+(Point l, Point r) { return (l += r); }
 inline Point operator-(Point l, Point r) { return (l -= r); }
@@ -58,16 +54,12 @@ inline Point operator-(Point l, Point r) { return (l -= r); }
 inline Point operator+(Point p) { return p; }
 inline Point operator-(Point p) { return Point(-p.x, -p.y); }
 
-inline Point operator*(Point p, float n) { return Point(p.x * n, p.y * n); }
-inline Point operator*(float n, Point p) { return p * n; }
+inline Point operator*(Point p, double n) { return Point(p.x * n, p.y * n); }
+inline Point operator*(double n, Point p) { return p * n; }
 
-inline Point operator/(Point p, float n) { return Point(p.x / n, p.y / n); }
+inline Point operator/(Point p, double n) { return Point(p.x / n, p.y / n); }
 
-inline bool almost_eq(Point p, Point q)
-{
-	return std::abs(p.x - q.x) < POINT_EPSILON
-		   && std::abs(p.y - q.y) < POINT_EPSILON;
-}
+inline bool operator==(Point p, Point q) { return p.x == q.x && p.y == q.y; }
 
 inline Point mul_components(Point l, Point r)
 {
@@ -106,7 +98,6 @@ is_box_inside_box(Point outer, Point outer_size, Point inner, Point inner_size)
 	return inner.x >= outer.x && inner.y >= outer.y
 		   && inner_end.x <= outer_end.x && inner_end.y <= outer_end.y;
 }
-
 } // namespace eggui
 
 #endif

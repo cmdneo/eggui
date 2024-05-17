@@ -36,8 +36,8 @@ Point calc_stretched_size(
 /// @param gap Gap between boxes along the length.
 /// @param result Result parameter: offsets of boxes from 0.
 /// @return Total length of the container containing the boxes.
-float calc_box_offsets(
-	const std::vector<float> &sizes, float gap, std::vector<float> &result
+int calc_box_offsets(
+	const std::vector<int> &sizes, int gap, std::vector<int> &result
 );
 
 /// @brief Calculate how much space should be used by each box.
@@ -46,15 +46,15 @@ float calc_box_offsets(
 /// @param avail_size Total available size.
 /// @param result Result argument, resultant size of each.
 void calc_expanded_size(
-	const std::vector<float> &min_sizes, const std::vector<float> &max_sizes,
-	float avail_size, std::vector<float> &result
+	const std::vector<int> &min_sizes, const std::vector<int> &max_sizes,
+	int avail_size, std::vector<int> &result
 );
 
 /// @brief Calculate length of the container taking in accout gaps in between.
 /// @param lens Lengths of the boxes.
 /// @param gap Gap between each box.
 /// @return Total length.
-float calc_length_with_gaps(const std::vector<float> &lens, int gap);
+int calc_length_with_gaps(const std::vector<int> &lenghts, int gap);
 } // namespace eggui
 
 #endif
