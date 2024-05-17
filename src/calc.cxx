@@ -83,25 +83,26 @@ void calc_expanded_size(
 	for (auto v : max_sizes)
 		max_size += v;
 
-	max_size = std::min(max_size, avail_size);
+	int usable_size = std::min(max_size, avail_size);
 
 	// If none of the boxes can be expanded then just set it to zero.
-	double inc_frac = 0;
-	if (auto diff = max_size - min_size; diff > 0)
-		inc_frac = (max_size - min_size) / diff;
+	double increment = 0;
+	if (int diff = max_size - min_size; diff > 0)
+		increment = 1.0 * (usable_size - min_size) / diff;
 
-	int unused_size = max_size;
+	int unused_size = usable_size;
 	for (unsigned i = 0; i < min_sizes.size(); ++i) {
 		int extra = max_sizes[i] - min_sizes[i];
-		result[i] = min_sizes[i] + inc_frac * extra;
+		double actual = min_sizes[i] + increment * extra;
+		result[i] = min_sizes[i] + increment * extra;
 		unused_size -= result[i];
 	}
 
 	// Since conversion to int truncates the fractional part we add the
-	// remaining unused size so that we use all the available space.
+	// remaining unused size so that we use all the usable space.
 	// Beacause fractional < 1, therefore: unused_size <= number_of_elements.
-	assert(unused_size <= result.size());
-	for (int i = 0; i < unused_size && i < result.size(); ++i)
+	assert(unused_size <= static_cast<int>(result.size()));
+	for (int i = 0; i < unused_size; ++i)
 		result[i]++;
 }
 

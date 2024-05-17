@@ -39,10 +39,13 @@ void PaddedBox::set_padding(int top, int bottom, int left, int right)
 
 void PaddedBox::layout_children(Point size_hint)
 {
+	size_hint = clamp_components(size_hint, get_min_size(), get_max_size());
+
 	Point padding(left_pad + right_pad, top_pad + bottom_pad);
 	auto avail_size = size_hint - padding;
 	auto child_size = calc_stretched_size(
-		child->get_min_size(), child->get_max_size(), avail_size, fill_mode
+		child->get_min_size(), child->get_max_size(), avail_size,
+		child->get_fill()
 	);
 
 	Point pos(left_pad, top_pad);
@@ -247,7 +250,7 @@ Point LinearBox::calc_layout_info()
 	int max_len = calc_length_with_gaps(cell_max_sizes, item_gap);
 
 	if (expand_to_fill)
-		max_len = UNLIMITED_MAX_SIZE.x;
+		max_len = UNLIMITED_MAX_SIZE;
 
 	if (orientation == Orientation::Horizontal) {
 		set_min_size(Point(min_len, min_size.y));
