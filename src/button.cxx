@@ -30,7 +30,7 @@ Widget *Button::notify_impl(Event ev)
 		return this;
 
 	if (ev.type == EventType::MouseClick) {
-		on_click(*this);
+		on_click(ev.window, *this);
 		return this;
 	}
 

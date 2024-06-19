@@ -69,7 +69,7 @@ void Widget::draw_debug_impl()
 
 	static char buffer[256];
 	auto pos = calc_abs_position();
-	snprintf(buffer, sizeof buffer, "(%.1f, %.1f)", pos.x, pos.y);
+	std::snprintf(buffer, sizeof buffer, "(%d, %d)", pos.x, pos.y);
 
 	RGBA color = RGBA(255, 128, 0);
 	if (!is_drawing_visible)
@@ -130,8 +130,7 @@ bool Widget::is_visible(const Pen &pen) const
 {
 	assert(canvas.has_active_pen());
 
-	// All widgets are drawn with clipping, so if a widget lies outside of
-	// the clip area then it is not visible.
-	auto [pos, size] = pen.get_clip_region();
-	return check_box_collision(pos, size, Point(0, 0), get_size());
+	// All widgets are drawn with clipping.
+	auto size = pen.get_clip_region().second;
+	return size.x * size.y >= 1;
 }

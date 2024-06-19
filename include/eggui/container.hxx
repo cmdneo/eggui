@@ -62,9 +62,6 @@ private:
 	int bottom_pad = 0;
 	int left_pad = 0;
 	int right_pad = 0;
-
-	// Expand inner widget.
-	Fill fill_mode = Fill::RowNColumn;
 };
 
 class LinearBox final : public Container
@@ -175,7 +172,7 @@ private:
 		Point grid_pos;
 		// Number of columns and rows spanned.
 		Point span;
-};
+	};
 
 	std::vector<Child> children;
 

@@ -71,17 +71,17 @@ int calc_new_container_pos(
 )
 {
 	assert(old_cont_pos <= 0);
+
 	if (new_view_len >= cont_len)
 		return 0;
+	if (new_view_len <= old_view_len)
+		return old_cont_pos;
 
-	// Constraint: top_ovf + bottom_ovf + old_view_len = cont_len
-	int top_ovf = -old_cont_pos;
 	int bottom_ovf = old_cont_pos + cont_len - old_view_len;
-
-	// Bottom portion is revealed/hidden first if available, then top.
 	int delta = new_view_len - old_view_len;
 
-	return 0;
+	delta -= std::min(delta, bottom_ovf);
+	return old_cont_pos + delta;
 }
 
 // ScrollSlider members
@@ -204,7 +204,7 @@ void ScrollBar::set_slider_len(int len)
 
 // VScrollView members
 //---------------------------------------------------------
-VScrollView::VScrollView(std::shared_ptr<Widget> child_, int w, int h)
+VScrollView::VScrollView(int w, int h, std::shared_ptr<Widget> child_)
 	: Container(w, h)
 	, child(std::move(child_))
 {
@@ -269,13 +269,14 @@ Point VScrollView::calc_layout_info()
 {
 	calc_layout_info_if_container(*child);
 
+	// TODO respect the requested size and add reasonable margins from scrollbar.
 	Point min_size = child->get_min_size() + calc_bars_size();
 	Point max_size = child->get_max_size() + calc_bars_size();
 
 	// Height is unbounded in a vertical scroll view, therefore, for maximum
 	// we put no limit, and for minimum we preserve what was given.
 	min_size[AXIS] = get_min_size()[AXIS];
-	max_size[AXIS] = UNLIMITED_MAX_SIZE[AXIS];
+	max_size[AXIS] = UNLIMITED_MAX_SIZE;
 	set_min_size(min_size);
 	set_max_size(max_size);
 

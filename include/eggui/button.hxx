@@ -17,7 +17,7 @@ public:
 
 	void set_label(std::string txt) { label.set_text(std::move(txt)); }
 
-	void set_on_click(std::function<void(Button &)> callback)
+	void set_on_click(std::function<void(Window &, Button &)> callback)
 	{
 		on_click = callback;
 	}
@@ -29,7 +29,7 @@ protected:
 	void draw_impl() override;
 
 private:
-	std::function<void(Button &)> on_click = [](auto &) {};
+	std::function<void(Window &, Button &)> on_click = [](auto &, auto &) {};
 	Label label;
 };
 } // namespace eggui

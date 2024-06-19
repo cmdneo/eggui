@@ -76,7 +76,7 @@ private:
 class VScrollView : public Container
 {
 public:
-	VScrollView(std::shared_ptr<Widget> child_, int w, int h);
+	VScrollView(int w, int h, std::shared_ptr<Widget> child_);
 
 	void layout_children(Point size_hint) override;
 	Point calc_layout_info() override;

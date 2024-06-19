@@ -6,7 +6,6 @@
 #include "window.hxx"
 #include "widget.hxx"
 #include "theme.hxx"
-#include "container.hxx"
 #include "graphics.hxx"
 
 using namespace eggui;
@@ -78,8 +77,10 @@ void Window::request_remove_animations(Widget *w)
 	});
 }
 
-void Window::request_focus(Interactive *w)
+void Window::request_focus(Interactive *w, bool keep_pinned)
 {
+	keep_focus_pinned = keep_pinned;
+
 	// Do not change anything if already focused.
 	if (w == focused_on)
 		return;
@@ -101,6 +102,12 @@ void Window::update()
 {
 	// If window is resized then just re-layout and ignore any other events.
 	if (IsWindowResized()) {
+		// HACK - We draw twice when resized.
+		// Drawing only once causes small black square shaped boxes to appear
+		// at top-right and bottom-left corners and the drawing of that part to
+		// be shifted. This only happend when the window is maximized.
+		draw_cnt = 2;
+
 		layout(Point(GetScreenWidth(), GetScreenHeight()));
 		set_resize_limits();
 		return;
@@ -114,7 +121,7 @@ void Window::update()
 #endif
 
 	// Any new animations added by event handlers will be started in the next
-	// frame, as we also need to start the timer(if no animations were playing).
+	// update, as we also need to start the timer(if no animations were playing).
 	play_animations();
 	handle_mouse_events();
 	handle_keyboard_events();
@@ -149,11 +156,6 @@ void Window::draw()
 
 void Window::layout(Point size)
 {
-	// HACK - We draw twice when resized.
-	// Drawing only once causes small black square shaped boxes to appear
-	// at top-right and bottom-left corners and the drawing of that part to
-	// be shifted.
-	draw_cnt = 2;
 	root_widget->set_size(size);
 	root_widget->set_position(Point(0, 0));
 }
@@ -223,11 +225,11 @@ void Window::handle_mouse_events()
 	}
 
 	// If some widget had acquired focus earlier but then the mouse button is
-	// pressed over some another widget, then it loses its focus.
-	// We check this condition using `hovered` because not all widgets are
-	// interactive but a focusable widget is always interactive.
-	if (focused_on && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)
-		&& hovered != focused_on) {
+	// pressed over some another widget and it has not been requested to keep
+	// the focus pinned, then it loses its focus.
+	// Since hovered can be a nullptr, we check for button press explicitly.
+	if (!keep_focus_pinned && focused_on && hovered != focused_on
+		&& IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 		notify_n_ack(focused_on, EventType::FocusLost);
 		focused_on = nullptr;
 	}

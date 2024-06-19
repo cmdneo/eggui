@@ -9,11 +9,6 @@
 
 using namespace eggui;
 
-static int calc_text_box_height(FontSize font_size)
-{
-	return font_size_to_pixels(font_size) + 2 * TEXT_PADDING;
-}
-
 // TODO Implement auto height calculation
 TextInput::TextInput(int w, int h)
 	: Interactive(w, h)
@@ -22,12 +17,17 @@ TextInput::TextInput(int w, int h)
 	text.set_position(Point(TEXT_PADDING, TEXT_PADDING));
 	text.set_cursor_opacity(false);
 }
+void TextInput::set_size(Point size)
+{
+	text.set_all_sizes(size - 2 * Point(TEXT_PADDING, TEXT_PADDING));
+	Widget::set_size(size);
+}
 
 Widget *TextInput::notify_impl(Event ev)
 {
 	auto blink = [this](int, float progress) {
 		// Use 1 - (2x - 1)^2 for the blink animation of the cursor.
-		auto opacity = 1 - std::pow(2. * progress - 1, 2);
+		double opacity = 1 - std::pow(2. * progress - 1, 2);
 		text.set_cursor_opacity(opacity);
 
 		return true;
@@ -37,7 +37,7 @@ Widget *TextInput::notify_impl(Event ev)
 	switch (ev.type) {
 	case EventType::FocusGained:
 		ev.window.request_animation(
-			this, Animation(TICKS_PER_SECOND * 2, 0, true, blink)
+			this, Animation(TICKS_PER_SECOND, 0, true, blink)
 		);
 		return this;
 
@@ -55,7 +55,7 @@ Widget *TextInput::notify_impl(Event ev)
 		return this;
 
 	case EventType::MousePressed:
-		ev.window.request_focus(this);
+		ev.window.request_focus(this, true);
 		return text.notify(ev);
 
 	case EventType::CharEntered:
@@ -85,4 +85,10 @@ void TextInput::draw_impl()
 {
 	draw_rounded_rect(Point(), get_size(), ELEMENT_ROUNDNESS, TEXT_BG_COLOR);
 	text.draw();
+}
+
+void TextInput::draw_debug_impl()
+{
+	text.draw_debug();
+	Interactive::draw_debug_impl();
 }

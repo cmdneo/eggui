@@ -52,8 +52,9 @@ public:
 	void request_remove_animations(Widget *w);
 
 	/// @brief Provide focus to the widget, removing earlier focus if any.
-	/// @param w The interactive widget to be focused on.
-	void request_focus(Interactive *w);
+	/// @param w The widget to be focused on, nullptr to remove current focus.
+	/// @param keep_pinned Kepp focused until explicitly changed/removed by it.
+	void request_focus(Interactive *w, bool keep_pinned);
 
 	/// @brief Request the window to close the window and end its main loop.
 	/// @param w Requesting widget.
@@ -100,7 +101,7 @@ private:
 	bool event_waiting_enabled = false;
 	// Number of times widgets should be drawn after a change.
 	int draw_cnt = 1;
-	// Time since update was last called.
+	// Monotonic time when update was last called.
 	double last_update_time = 0;
 
 	// Widget over which mouse button has been pressed but not released yet.
@@ -110,11 +111,15 @@ private:
 	Widget *hovering_over = nullptr;
 	// Widget over which keyboard is focused, all keypressed will to sent to it.
 	Widget *focused_on = nullptr;
+	/// Do not remove focus until explicitly changed/removd by request_focus
+	bool keep_focus_pinned = false;
 	// If any widget has requested to close the window.
 	bool close_requested = false;
 
 	// Pending animations along with their widgets.
 	std::vector<std::pair<Widget *, Animation>> animations;
+	// Time by how much by animations are lagging behind from the present.
+	// We use this to update animations frames using a fixed delta time.
 	double animation_lag = 0;
 };
 } // namespace eggui

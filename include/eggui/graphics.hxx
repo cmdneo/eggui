@@ -104,7 +104,7 @@ void draw_cirlce(Point center, float radius, RGBA color);
 void draw_cirlce_sector(Point position, float radius, float start_angle, float end_angle, RGBA color);
 void draw_ring(Point center, float inner_rad, float outer_rad, RGBA color);
 void draw_triangle(Point v1, Point v2, Point v3, RGBA color);
-void draw_text(Point position, RGBA color, const char *text, FontSize font_size);
+void draw_text(Point position, RGBA color, const char *text, FontSize font_size, int spacing = 0);
 
 Point tell_text_size(const char *text, FontSize font_size);
 } // namespace eggui

@@ -1,7 +1,6 @@
 #include <cassert>
 #include <algorithm>
 #include <vector>
-#include <memory>
 #include <ranges>
 #include <utility>
 
@@ -198,12 +197,14 @@ void draw_triangle(Point v1, Point v2, Point v3, RGBA color)
 	DrawTriangle(to_vec2(v1), to_vec2(v2), to_vec2(v3), to_color(color));
 }
 
-void draw_text(Point position, RGBA color, const char *text, FontSize font_size)
+void draw_text(
+	Point position, RGBA color, const char *text, FontSize font_size,
+	int spacing
+)
 {
-
 	int idx = get_index_for_font_size(font_size);
 	DrawTextEx(
-		g_mono_fonts[idx], text, to_vec2(position), FONT_PX_SIZES[idx], 0,
+		g_mono_fonts[idx], text, to_vec2(position), FONT_PX_SIZES[idx], spacing,
 		to_color(color)
 	);
 }

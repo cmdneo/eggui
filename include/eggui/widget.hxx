@@ -216,7 +216,7 @@ constexpr double UPDATE_DELTA_TIME = 1.0 / TICKS_PER_SECOND;
 /// Represents size for an arbtriararily growable widget.
 // Using a large enough value but not the maximum ensures no overflow when
 // doing arithmetic with it, and a large enough size for all screens.
-constexpr Point UNLIMITED_MAX_SIZE(1e6, 1e6);
+constexpr int UNLIMITED_MAX_SIZE = 1e6;
 } // namespace eggui
 
 #endif
