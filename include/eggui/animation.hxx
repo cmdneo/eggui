@@ -50,15 +50,15 @@ private:
 	// Time in ticks, 1 / TICKS_PER_SECOND = UPDATE_DELTA_TIME
 	// is the duration of a tick.
 	// Start animation after this many ticks.
-	int delay;
+	int delay = 0;
 	// The length of an animation.
-	int duration;
+	int duration = 0;
 	// Ticks elapsed since the animation was initiated.
-	int elapsed;
+	int elapsed = 0;
 	// Current tick of the animation ranges from: 0 to duration.
-	int tick;
+	int tick = 0;
 	// Enable looping.
-	bool is_looping;
+	bool is_looping = false;
 	// Function object to call for next frame,
 	// if it returns true then the widget should be re-drawn.
 	std::function<bool(int tick, float progress)> next_frame_callback;
