@@ -17,16 +17,23 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 add_library(eggui
 	src/calc.cxx
 	src/text.cxx
-	src/window.cxx
 	src/managers.cxx
 	src/canvas.cxx
 	src/graphics.cxx
+	
+	src/window.cxx
 	src/widget.cxx
+
 	src/container.cxx
-	src/button.cxx
-	src/label.cxx
 	src/scrollable.cxx
+
+	src/draggable.cxx
+
+	src/label.cxx
+
+	src/button.cxx
 	src/input.cxx
+	src/switch.cxx
 )
 
 # Add examples

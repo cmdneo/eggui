@@ -6,9 +6,12 @@
 #include "window.hxx"
 #include "widget.hxx"
 #include "container.hxx"
-#include "button.hxx"
 #include "scrollable.hxx"
+
 #include "label.hxx"
+
 #include "input.hxx"
+#include "button.hxx"
+#include "switch.hxx"
 
 #endif
