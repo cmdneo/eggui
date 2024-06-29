@@ -7,7 +7,31 @@
 #include "graphics.hxx"
 #include "canvas.hxx"
 
-using namespace eggui;
+namespace eggui
+{
+void draw_widget(Widget &w)
+{
+	const auto pen = w.canvas.acquire_pen();
+	w.is_drawing_visible = w.is_visible(pen);
+	if (w.is_drawing_visible)
+		w.draw();
+}
+
+void draw_widget_debug(Widget &w)
+{
+	// Always draw debug info without any clipping
+	const auto pen = w.canvas.acquire_pen(false);
+	w.draw_debug();
+}
+
+Widget *notify_widget(Widget &w, Event ev)
+{
+	// Make cursor position relative to the widget and constrain it within
+	// the widget boundary.
+	ev.cursor -= w.get_position();
+	ev.cursor = clamp_components(ev.cursor, Point(0, 0), w.get_size());
+	return w.notify(ev);
+}
 
 void Widget::set_size(Point new_size)
 {
@@ -30,52 +54,28 @@ Point Widget::calc_abs_position() const
 {
 	Point ret = get_position();
 
-	Widget *p = parent;
-	while (p) {
+	for (auto p = get_parent(); p; p = p->get_parent())
 		ret += p->get_position();
-		p = p->parent;
-	}
 
 	return ret;
 }
 
-Widget *Widget::notify(Event ev)
-{
-	// Make cursor position relative to the widget and constrain it within
-	// the widget boundary.
-	ev.cursor -= get_position();
-	ev.cursor = clamp_components(ev.cursor, Point(0, 0), get_size());
-	return notify_impl(ev);
-}
-
 void Widget::draw_debug()
-{
-	// Always draw debug info without any clipping
-	const auto pen = canvas.acquire_pen(false);
-	draw_debug_impl();
-}
-
-void Widget::draw()
-{
-	const auto pen = canvas.acquire_pen();
-	is_drawing_visible = is_visible(pen);
-	if (is_drawing_visible)
-		draw_impl();
-};
-
-void Widget::draw_debug_impl()
 {
 	draw_rect_lines(Point(), get_size(), DEBUG_BORDER_COLOR);
 
+#ifdef EGGUI_DRAW_DEBUG_POSITIONS
 	static char buffer[256];
 	auto pos = calc_abs_position();
 	std::snprintf(buffer, sizeof buffer, "(%d, %d)", pos.x, pos.y);
 
+	// Paint the position red if widget is not visible or gets clipped.
 	RGBA color = RGBA(255, 128, 0);
 	if (!is_drawing_visible)
 		color.g = 0;
 
 	draw_text(Point(0, 0), color, buffer, FontSize::Tiny);
+#endif
 }
 
 bool Interactive::handle_mouse_hover_events(Event ev)
@@ -119,7 +119,7 @@ bool Interactive::handle_mouse_press_events(Event ev)
 	return true;
 }
 
-Widget *Interactive::notify_impl(Event ev)
+Widget *Interactive::notify(Event ev)
 {
 	if (!is_disabled() && ev.type == EventType::IsInteractive)
 		return this;
@@ -134,3 +134,4 @@ bool Widget::is_visible(const Pen &pen) const
 	auto size = pen.get_clip_region().second;
 	return size.x * size.y >= 1;
 }
+} // namespace eggui

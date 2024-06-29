@@ -38,8 +38,8 @@ public:
 	void delete_after_cursor();
 
 protected:
-	Widget *notify_impl(Event ev) override;
-	void draw_impl() override;
+	Widget *notify(Event ev) override;
+	void draw() override;
 
 private:
 	void calc_cursor_offset();

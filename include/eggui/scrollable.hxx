@@ -30,8 +30,8 @@ public:
 	}
 
 protected:
-	Widget *notify_impl(Event ev) override;
-	void draw_impl() override;
+	Widget *notify(Event ev) override;
+	void draw() override;
 
 private:
 	std::function<void(Point delta)> on_drag = [](Point) {};
@@ -62,9 +62,9 @@ public:
 	void set_slider_len(int len);
 
 protected:
-	Widget *notify_impl(Event ev) override;
-	void draw_impl() override;
-	void draw_debug_impl() override;
+	Widget *notify(Event ev) override;
+	void draw() override;
+	void draw_debug() override;
 
 private:
 	std::function<void(float)> on_scroll = [](float) {};
@@ -82,9 +82,9 @@ public:
 	Point calc_layout_info() override;
 
 protected:
-	Widget *notify_impl(Event ev) override;
-	void draw_impl() override;
-	void draw_debug_impl() override;
+	Widget *notify(Event ev) override;
+	void draw() override;
+	void draw_debug() override;
 
 private:
 	/// @brief Size occupied by the scrollbars for both axes

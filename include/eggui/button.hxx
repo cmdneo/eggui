@@ -25,8 +25,8 @@ public:
 	void set_size(Point new_size) override;
 
 protected:
-	Widget *notify_impl(Event ev) override;
-	void draw_impl() override;
+	Widget *notify(Event ev) override;
+	void draw() override;
 
 private:
 	std::function<void(Window &, Button &)> on_click = [](auto &, auto &) {};

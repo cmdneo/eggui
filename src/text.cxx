@@ -96,10 +96,10 @@ void EditableTextBox::delete_after_cursor()
 	text.erase(text.begin() + cursor_at);
 }
 
-Widget *EditableTextBox::notify_impl(Event ev)
+Widget *EditableTextBox::notify(Event ev)
 {
 	if (ev.type != EventType::MousePressed)
-		return Interactive::notify_impl(ev);
+		return Interactive::notify(ev);
 
 	float xpos = 0;
 	for (unsigned i = 0; i < text.size(); ++i) {
@@ -125,7 +125,7 @@ Widget *EditableTextBox::notify_impl(Event ev)
 	return this;
 }
 
-void EditableTextBox::draw_impl()
+void EditableTextBox::draw()
 {
 	// constexpr int DRAW_BUF_SIZE = 255;
 	// char draw_buf[DRAW_BUF_SIZE + 1]{};

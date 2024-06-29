@@ -66,19 +66,19 @@ Point PaddedBox::calc_layout_info()
 	return get_min_size();
 }
 
-Widget *PaddedBox::notify_impl(Event ev)
+Widget *PaddedBox::notify(Event ev)
 {
 	if (child->collides_with_point(ev.cursor))
-		return child->notify(ev);
+		return notify_widget(*child, ev);
 	return nullptr;
 }
 
-void PaddedBox::draw_impl() { child->draw(); }
+void PaddedBox::draw() { draw_widget(*child); }
 
-void PaddedBox::draw_debug_impl()
+void PaddedBox::draw_debug()
 {
-	Widget::draw_debug_impl();
-	child->draw_debug();
+	Widget::draw_debug();
+	draw_widget_debug(*child);
 }
 
 // LinearBox members
@@ -111,21 +111,21 @@ Widget *LinearBox::add_widget_end(std::shared_ptr<Widget> child)
 	return end_children.back().widget.get();
 }
 
-Widget *LinearBox::notify_impl(Event ev)
+Widget *LinearBox::notify(Event ev)
 {
 	for (auto &c : start_children) {
 		if (c.widget->collides_with_point(ev.cursor))
-			return c.widget->notify(ev);
+			return notify_widget(*c.widget, ev);
 	}
 	for (auto &c : end_children) {
 		if (c.widget->collides_with_point(ev.cursor))
-			return c.widget->notify(ev);
+			return notify_widget(*c.widget, ev);
 	}
 
 	return nullptr;
 }
 
-void LinearBox::draw_debug_impl()
+void LinearBox::draw_debug()
 {
 	const int axis = static_cast<int>(orientation);
 
@@ -144,26 +144,28 @@ void LinearBox::draw_debug_impl()
 			continue;
 
 		// Fill the gap if it exists for the cell.
+		if (item_gap == 0)
+			continue;
 		Point gap_size;
 		gap_size[axis] = item_gap;
 		gap_size[1 - axis] = get_size()[1 - axis];
 		draw_rect(start, gap_size, GAP_FILL_COLOR);
 	}
 
-	Container::draw_debug_impl();
+	Container::draw_debug();
 
 	for (auto &c : start_children)
-		c.widget->draw_debug();
+		draw_widget_debug(*c.widget);
 	for (auto &c : end_children)
-		c.widget->draw_debug();
+		draw_widget_debug(*c.widget);
 }
 
-void LinearBox::draw_impl()
+void LinearBox::draw()
 {
 	for (auto &c : start_children)
-		c.widget->draw();
+		draw_widget(*c.widget);
 	for (auto &c : end_children)
-		c.widget->draw();
+		draw_widget(*c.widget);
 }
 
 void LinearBox::layout_children(Point size_hint)
@@ -351,18 +353,18 @@ Widget *Grid::add_widget(
 	return ret_ptr;
 }
 
-Widget *Grid::notify_impl(Event ev)
+Widget *Grid::notify(Event ev)
 {
 	for (auto &c : children) {
 		if (!c.widget->collides_with_point(ev.cursor))
 			continue;
-		return c.widget->notify(ev);
+		return notify_widget(*c.widget, ev);
 	}
 
 	return nullptr;
 }
 
-void Grid::draw_debug_impl()
+void Grid::draw_debug()
 {
 	// Draw each row and column line, also draw the gap between them.
 	// We draw_rect_lines because draw_line produces a dim line, IDK why.
@@ -389,16 +391,16 @@ void Grid::draw_debug_impl()
 	}
 
 	// Draw the outer box over grid lines, since lines are drawn as rectangles.
-	Widget::draw_debug_impl();
+	Widget::draw_debug();
 
 	for (auto &c : children)
-		c.widget->draw_debug();
+		draw_widget_debug(*c.widget);
 }
 
-void Grid::draw_impl()
+void Grid::draw()
 {
 	for (auto &c : children)
-		c.widget->draw();
+		draw_widget(*c.widget);
 }
 
 void Grid::layout_children(Point size_hint)

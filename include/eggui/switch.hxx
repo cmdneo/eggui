@@ -29,8 +29,8 @@ public:
 	void set_on_toggle(ToggleCallback callback) { on_toggle = callback; }
 
 protected:
-	Widget *notify_impl(Event ev) override;
-	void draw_impl() override;
+	Widget *notify(Event ev) override;
+	void draw() override;
 
 private:
 	ToggleCallback on_toggle = [](auto &, auto &, bool) {};

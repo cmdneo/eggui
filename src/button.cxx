@@ -22,7 +22,7 @@ void Button::set_size(Point new_size)
 	label.set_all_sizes(new_size);
 }
 
-Widget *Button::notify_impl(Event ev)
+Widget *Button::notify(Event ev)
 {
 	if (handle_mouse_hover_events(ev))
 		return this;
@@ -34,10 +34,10 @@ Widget *Button::notify_impl(Event ev)
 		return this;
 	}
 
-	return Interactive::notify_impl(ev);
+	return Interactive::notify(ev);
 };
 
-void Button::draw_impl()
+void Button::draw()
 {
 	auto color = BUTTON_COLOR;
 	if (is_pressed)
@@ -46,5 +46,5 @@ void Button::draw_impl()
 		color = BUTTON_HOVER_COLOR;
 
 	draw_rounded_rect(Point(), get_size(), ELEMENT_ROUNDNESS, color);
-	label.draw();
+	draw_widget(label);
 }

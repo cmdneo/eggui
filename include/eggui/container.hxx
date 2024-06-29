@@ -51,9 +51,9 @@ public:
 	Point calc_layout_info() override;
 
 protected:
-	Widget *notify_impl(Event ev) override;
-	void draw_impl() override;
-	void draw_debug_impl() override;
+	Widget *notify(Event ev) override;
+	void draw() override;
+	void draw_debug() override;
 
 private:
 	std::shared_ptr<Widget> child;
@@ -85,9 +85,9 @@ public:
 	Point calc_layout_info() override;
 
 protected:
-	Widget *notify_impl(Event ev) override;
-	void draw_debug_impl() override;
-	void draw_impl() override;
+	Widget *notify(Event ev) override;
+	void draw_debug() override;
+	void draw() override;
 
 private:
 	struct Child {
@@ -118,7 +118,8 @@ private:
 	// Gap between each item along the orientation.
 	int item_gap = 0;
 
-	// Expand the box in the along the orientation direction to fill the space.
+	// Expand the box in the along the orientation
+	// direction to fill the space available.
 	bool expand_to_fill = false;
 };
 
@@ -159,9 +160,9 @@ public:
 	Point calc_layout_info() override;
 
 protected:
-	Widget *notify_impl(Event ev) override;
-	void draw_debug_impl() override;
-	void draw_impl() override;
+	Widget *notify(Event ev) override;
+	void draw_debug() override;
+	void draw() override;
 
 private:
 	void alloc_row_col_data();

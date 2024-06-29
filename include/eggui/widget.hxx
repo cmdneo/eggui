@@ -27,9 +27,29 @@ enum class Fill {
 	RowNColumn,
 };
 
+class Widget; // Forward declaration
+
+/// @brief Setup the canvas and draw widget.
+/// @param w The widget to be drawn.
+void draw_widget(Widget &w);
+
+/// @brief Draw widget debug boxes.
+/// @param w The widget to be drawn.
+void draw_widget_debug(Widget &w);
+
+/// @brief Do necessary transformations and notify the widget.
+/// @param w The widget to be notified.
+/// @param ev Event information.
+/// @return The widget which responded to the event, nullptr if ignored.
+Widget *notify_widget(Widget &w, Event ev);
+
 /// @brief Widget abstract base class, all widget inherit from this.
 class Widget
 {
+	friend void draw_widget(Widget &w);
+	friend void draw_widget_debug(Widget &w);
+	friend Widget *notify_widget(Widget &, Event ev);
+
 public:
 	Widget(int w, int h)
 		: Widget(0, 0, w, h)
@@ -106,30 +126,13 @@ public:
 	/// @return true if visible, false otherwise.
 	bool is_visible(const Pen &pen) const;
 
-	// We wrap all the drawing and notification methods to setup
-	// the pen and adjust mouse position relative to the widget.
-	// Actual implementations are in `*_impl` virtual methods.
-	//--------------------------------------------------------------------
-
-	/// @brief Handle the event or pass it onto its eligible child(if any).
-	/// @param event Event information
-	/// @return the widget which handeled the event, nullptr if unhandaled.
-	/// @note For overriding override the `notify_impl` method.
-	Widget *notify(Event ev);
-	/// @brief Draw debug boxes around widget boundaries
-	/// @note For overriding override the `debug_draw_impl` method.
-	void draw_debug();
-	/// @brief Draw the widget
-	/// @note For overriding override the `draw_impl` method.
-	void draw();
-
 protected:
-	/// @brief Does the event handling, called by `notify`.
-	virtual Widget *notify_impl(Event) { return nullptr; }
-	/// @brief Draws stuff, called by `draw`.
-	virtual void draw_impl() = 0;
-	/// @brief Draws debug boxes, called by `draw_debug`.
-	virtual void draw_debug_impl();
+	/// @brief Does the event handling, called by `notify_widget`.
+	virtual Widget *notify(Event) { return nullptr; }
+	/// @brief Draws stuff, called by `draw_widget`.
+	virtual void draw() = 0;
+	/// @brief Draws debug boxes, called by `draw_widget_debug`.
+	virtual void draw_debug();
 
 private:
 	/// Parent widget, at a time a widget can have only one parent.
@@ -169,7 +172,7 @@ protected:
 	///        by the subclass method which overrides this.
 	/// @param ev Event
 	/// @return The widget which handeled the event.
-	Widget *notify_impl(Event ev) override;
+	Widget *notify(Event ev) override;
 
 	/// @brief Manage is-hovering state for an enabled interactive widget.
 	/// @param ev Event

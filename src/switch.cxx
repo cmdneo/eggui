@@ -30,7 +30,7 @@ void Switch::set_state(bool new_state, Window &window)
 	);
 }
 
-Widget *Switch::notify_impl(Event ev)
+Widget *Switch::notify(Event ev)
 {
 	if (handle_mouse_hover_events(ev))
 		return this;
@@ -42,10 +42,10 @@ Widget *Switch::notify_impl(Event ev)
 		return this;
 	}
 
-	return Interactive::notify_impl(ev);
+	return Interactive::notify(ev);
 }
 
-void Switch::draw_impl()
+void Switch::draw()
 {
 
 	auto rad = get_size().y / 2 - SWITCH_PADDING;

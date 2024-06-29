@@ -23,7 +23,7 @@ void TextInput::set_size(Point size)
 	Widget::set_size(size);
 }
 
-Widget *TextInput::notify_impl(Event ev)
+Widget *TextInput::notify(Event ev)
 {
 	auto blink = [this](int, float progress) {
 		// Use 1 - (2x - 1)^2 for the blink animation of the cursor.
@@ -56,7 +56,7 @@ Widget *TextInput::notify_impl(Event ev)
 
 	case EventType::MousePressed:
 		ev.window.request_focus(this, true);
-		return text.notify(ev);
+		return notify_widget(text, ev);
 
 	case EventType::CharEntered:
 		text.insert_before_cursor(ev.keycode);
@@ -78,17 +78,17 @@ Widget *TextInput::notify_impl(Event ev)
 		break;
 	}
 
-	return Interactive::notify_impl(ev);
+	return Interactive::notify(ev);
 }
 
-void TextInput::draw_impl()
+void TextInput::draw()
 {
 	draw_rounded_rect(Point(), get_size(), ELEMENT_ROUNDNESS, TEXT_BG_COLOR);
-	text.draw();
+	draw_widget(text);
 }
 
-void TextInput::draw_debug_impl()
+void TextInput::draw_debug()
 {
-	text.draw_debug();
-	Interactive::draw_debug_impl();
+	draw_widget_debug(text);
+	Interactive::draw_debug();
 }

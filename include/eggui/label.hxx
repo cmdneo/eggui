@@ -34,7 +34,7 @@ public:
 	void set_text(std::string txt);
 
 protected:
-	void draw_impl() override;
+	void draw() override;
 
 private:
 	std::string text = "";

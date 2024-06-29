@@ -14,9 +14,9 @@ public:
 	void set_size(Point size) override;
 
 protected:
-	Widget *notify_impl(Event ev) override;
-	void draw_impl() override;
-	void draw_debug_impl() override;
+	Widget *notify(Event ev) override;
+	void draw() override;
+	void draw_debug() override;
 
 private:
 	EditableTextBox text;

@@ -10,7 +10,7 @@ using namespace eggui;
 
 void Label::set_text(std::string txt) { text = std::move(txt); }
 
-void Label::draw_impl()
+void Label::draw()
 {
 	auto cstr = text.c_str();
 

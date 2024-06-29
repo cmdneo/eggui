@@ -86,7 +86,7 @@ int calc_new_container_pos(
 
 // ScrollSlider members
 //---------------------------------------------------------
-Widget *ScrollSlider::notify_impl(Event ev)
+Widget *ScrollSlider::notify(Event ev)
 {
 	if (handle_mouse_hover_events(ev))
 		return this;
@@ -99,10 +99,10 @@ Widget *ScrollSlider::notify_impl(Event ev)
 		return this;
 	}
 
-	return Interactive::notify_impl(ev);
+	return Interactive::notify(ev);
 }
 
-void ScrollSlider::draw_impl()
+void ScrollSlider::draw()
 {
 	auto color = BUTTON_COLOR;
 	if (is_hovering)
@@ -133,16 +133,16 @@ ScrollBar::ScrollBar(int w, int h, Axis axis)
 	});
 }
 
-Widget *ScrollBar::notify_impl(Event ev)
+Widget *ScrollBar::notify(Event ev)
 {
 	if (slider.collides_with_point(ev.cursor))
-		return slider.notify(ev);
+		return notify_widget(slider, ev);
 
 	if (handle_mouse_hover_events(ev))
 		return this;
 
 	if (ev.type != EventType::MousePressed)
-		return Interactive::notify_impl(ev);
+		return Interactive::notify(ev);
 
 	// If pressed anywhere on the bar but not on the slider then,
 	// we pretend that the slider was dragged to that position.
@@ -150,23 +150,25 @@ Widget *ScrollBar::notify_impl(Event ev)
 	Event dragged(ev.window, EventType::MouseDrag, pos);
 	dragged.delta = ev.cursor - pos;
 
-	// We tell slider that it was hovered, pressed and then dragged,
-	// for pretending that the slider was dragged to that position.
-	slider.notify(Event(ev.window, EventType::MouseIn, pos));
-	slider.notify(Event(ev.window, EventType::MousePressed, pos));
-	return slider.notify(dragged);
+	// We tell slider that it was hovered over, pressed and then dragged.
+	Event tmp(ev.window, EventType::MouseIn, pos);
+	notify_widget(slider, tmp);
+	tmp.type = EventType::MousePressed;
+	notify_widget(slider, tmp);
+
+	return notify_widget(slider, dragged);
 }
 
-void ScrollBar::draw_debug_impl()
+void ScrollBar::draw_debug()
 {
-	Widget::draw_debug_impl();
-	slider.draw_debug();
+	Widget::draw_debug();
+	draw_widget_debug(slider);
 }
 
-void ScrollBar::draw_impl()
+void ScrollBar::draw()
 {
 	draw_rect(Point(), get_size(), SCROLL_BAR_COLOR);
-	slider.draw();
+	draw_widget(slider);
 }
 
 void ScrollBar::scroll_to_position(Point bar_click_pos)
@@ -286,44 +288,49 @@ Point VScrollView::calc_layout_info()
 	return get_min_size();
 }
 
-Widget *VScrollView::notify_impl(Event ev)
+Widget *VScrollView::notify(Event ev)
 {
 	// Find the innermost scrollable widget, if none exists then,
 	// this is the one. Scrollbale means responds to scroll event.
 	if (ev.type == EventType::Scroll) {
-		auto inner = child->notify(ev);
+		auto inner = notify_widget(*child, ev);
 		if (inner)
 			return inner;
 
-		// Scroll gives the direction content should go, and if content goes
-		// up(-ve direction), it increases scroll fraction and vice-versa.
-		double scroll_frac = 1.0 * -ev.scroll[AXIS] / child->get_size()[AXIS];
-		scroll_frac *= SCROLL_FACTOR;
-		scroll_frac += scrollbar->get_scroll_fraction();
-		scroll_frac = std::clamp(scroll_frac, 0.0, 1.0);
-		scrollbar->set_scroll_fraction(scroll_frac);
+		// Scroll gives the direction content should go, and if scroll is
+		// negative, then content should go up.
+		// For every scroll we scroll content multiplied by a factor.
+		// TODO Implement scroll acceleration. In the window module prefereable.
+		double excess = child->get_size()[AXIS] - get_size()[AXIS];
+		if (excess <= 0)
+			return this;
+		double offset = child->get_position()[AXIS];
+		offset += SCROLL_FACTOR * ev.scroll[AXIS];
+
+		double scroll = -offset / excess;
+		scroll = std::clamp(scroll, 0.0, 1.0);
+		scrollbar->set_scroll_fraction(scroll);
 
 		return this;
 	}
 
 	if (scrollbar->collides_with_point(ev.cursor))
-		return scrollbar->notify(ev);
+		return notify_widget(*scrollbar, ev);
 
-	return child->notify(ev);
+	return notify_widget(*child, ev);
 }
 
-void VScrollView::draw_impl()
+void VScrollView::draw()
 {
-	child->draw();
-	scrollbar->draw();
+	draw_widget(*child);
+	draw_widget(*scrollbar);
 }
 
-void VScrollView::draw_debug_impl()
+void VScrollView::draw_debug()
 {
-	Widget::draw_debug_impl();
-	scrollbar->draw_debug();
-
-	child->draw_debug();
+	Widget::draw_debug();
+	draw_widget_debug(*scrollbar);
+	draw_widget_debug(*child);
 }
 
 Point VScrollView::calc_bars_size() const { return Point(SCROLL_BAR_WIDTH, 0); }

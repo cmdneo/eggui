@@ -177,9 +177,9 @@ void Window::draw()
 
 	clear_background();
 
-	root_widget->draw();
+	draw_widget(*root_widget);
 	if (debug_borders_enabled)
-		root_widget->draw_debug();
+		draw_widget_debug(*root_widget);
 
 	auto parent_abs_pos = [](Widget &w) {
 		if (auto p = w.get_parent())
@@ -194,9 +194,9 @@ void Window::draw()
 	for (auto &ov : overlays) {
 		push_translation(parent_abs_pos(*ov.widget));
 
-		ov.widget->draw();
+		draw_widget(*ov.widget);
 		if (debug_borders_enabled)
-			ov.widget->draw_debug();
+			draw_widget_debug(*ov.widget);
 
 		pop_translation();
 	}
@@ -245,7 +245,7 @@ void Window::handle_mouse_events()
 		if (!w.collides_with_point(get_mouse_pos()))
 			return;
 		auto ev = Event(*this, EventType::IsInteractive, get_mouse_pos());
-		hovered = w.notify(ev);
+		hovered = notify_widget(w, ev);
 	};
 
 	// First check if we are hovering over any of the
@@ -327,13 +327,13 @@ void Window::handle_keyboard_events()
 	int charc = GetCharPressed();
 	if (charc != 0) {
 		Event ev(*this, EventType::CharEntered, charc);
-		focused_on->notify(ev);
+		notify_widget(*focused_on, ev);
 	}
 
 	int keyc = GetKeyPressed();
 	if (charc == 0 && keyc != KEY_NULL) {
 		Event ev(*this, EventType::KeyPressed, keyc);
-		focused_on->notify(ev);
+		notify_widget(*focused_on, ev);
 	};
 }
 
@@ -364,7 +364,7 @@ Widget *Window::notify_n_ack(Widget *w, EventType type, Point extra)
 	auto ev = Event(*this, type, get_mouse_pos());
 	ev.delta = extra;
 
-	auto ret = w->notify(ev);
+	auto ret = notify_widget(*w, ev);
 	draw_cnt = ret && draw_cnt == 0 ? 1 : draw_cnt;
 
 	return ret;
