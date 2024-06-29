@@ -1,10 +1,10 @@
 #ifndef WINDOW_HXX_INCLUDED
 #define WINDOW_HXX_INCLUDED
 
-#include <memory>
-#include <utility>
 #include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "widget.hxx"
@@ -13,7 +13,13 @@
 
 namespace eggui
 {
-// TODO Add support for providing generated input testing purposes.
+struct Overlay {
+	std::shared_ptr<Widget> widget;
+	// Indicate if the overlay has been marked for removal,
+	// and will be removed at the end of the current update.
+	bool removed;
+};
+
 class Window
 {
 public:
@@ -24,10 +30,10 @@ public:
 
 	/// @brief Set window title
 	/// @param title_str Title string, null terminated.
-	void set_title(const char *title_str) { title = title_str; }
+	void set_title(std::string title_str);
 
 	/// @brief Action to be performed when closing
-	/// @param callback Callback, window is closed if it returns true.
+	/// @param callback Callback, window is closed only if it returns true.
 	void set_close_action(std::function<bool(Window &)> callback)
 	{
 		close_action = callback;
@@ -46,10 +52,17 @@ public:
 	/// @brief Attach an animation to the widget.
 	/// @param w The widget which is requesting the animation.
 	/// @param animation Animation frame callback object.
-	void request_animation(Widget *w, Animation animation);
+	void add_animation(Widget *w, Animation animation);
 	/// @brief Remove all animations associated with the widget.
 	/// @param w The widget.
-	void request_remove_animations(Widget *w);
+	void remove_animations(Widget *w);
+
+	/// @brief Add a floating widgte.
+	/// @param w The overlay.
+	void add_overlay(std::shared_ptr<Widget> w);
+	/// @brief Remove an floating widget.
+	/// @param w The widget pointet for identification.
+	void remove_overlay(Widget *w);
 
 	/// @brief Provide focus to the widget, removing earlier focus if any.
 	/// @param w The widget to be focused on, nullptr to remove current focus.
@@ -88,14 +101,16 @@ private:
 	double get_update_dt() const;
 
 	// Window title.
-	const char *title = "EGGUI Window";
+	std::string title = "EGGUI Window";
 	// The top level widget, generally a container.
 	std::shared_ptr<Widget> root_widget;
 	// Function to be run if the user tries to close the window.
-	// Returns true if window should be closed immediately.
+	// Returns true if the window should be closed immediately.
 	std::function<bool(Window &)> close_action = [](Window &) { return true; };
 
-	// UI debug mode setting
+	// Is the window active and main loop running.
+	bool is_running = false;
+	// UI debug mode setting.
 	bool debug_borders_enabled = false;
 	// Is sleep to wait for input events enabled.
 	bool event_waiting_enabled = false;
@@ -111,16 +126,19 @@ private:
 	Widget *hovering_over = nullptr;
 	// Widget over which keyboard is focused, all keypressed will to sent to it.
 	Widget *focused_on = nullptr;
-	/// Do not remove focus until explicitly changed/removd by request_focus
+	/// Do not remove focus until explicitly changed/removed by request_focus.
 	bool keep_focus_pinned = false;
-	// If any widget has requested to close the window.
+	// Has any widget has requested to close the window.
 	bool close_requested = false;
 
-	// Pending animations along with their widgets.
+	// Pending animations along with their associated widgets.
 	std::vector<std::pair<Widget *, Animation>> animations;
 	// Time by how much by animations are lagging behind from the present.
 	// We use this to update animations frames using a fixed delta time.
 	double animation_lag = 0;
+
+	// Floating widgets, overlaid over the root widget.
+	std::vector<Overlay> overlays;
 };
 } // namespace eggui
 

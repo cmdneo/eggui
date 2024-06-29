@@ -2,17 +2,24 @@
 
 #include "raylib/raylib.h"
 
-#include "utils/swap_remove.hxx"
+#include "graphics.hxx"
 #include "window.hxx"
 #include "widget.hxx"
 #include "theme.hxx"
-#include "graphics.hxx"
+#include "utils/swap_remove.hxx"
 
 using namespace eggui;
 
 inline Point vec2_to_point(Vector2 v) { return Point(v.x, v.y); };
 
 inline Point get_mouse_pos() { return vec2_to_point(GetMousePosition()); }
+
+void Window::set_title(std::string title_str)
+{
+	title = std::move(title_str);
+	if (is_running)
+		SetWindowTitle(title.c_str());
+}
 
 void Window::main_loop(int width_hint, int height_hint)
 {
@@ -27,7 +34,7 @@ void Window::main_loop(int width_hint, int height_hint)
 
 	SetTraceLogLevel(LOG_WARNING);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
-	InitWindow(size.x, size.y, title);
+	InitWindow(size.x, size.y, title.c_str());
 	init_graphics();
 
 	// This is not really needed since we also check for frame timing manually,
@@ -41,6 +48,7 @@ void Window::main_loop(int width_hint, int height_hint)
 	EnableEventWaiting(); // Sleep untill a new input event arrives.
 	event_waiting_enabled = true;
 	last_update_time = GetTime();
+	is_running = true;
 
 	while (!((WindowShouldClose() || close_requested) && close_action(*this))) {
 		update();
@@ -61,20 +69,38 @@ void Window::main_loop(int width_hint, int height_hint)
 		}
 	}
 
+	is_running = false;
 	deinit_graphics();
 	CloseWindow();
 }
 
-void Window::request_animation(Widget *w, Animation animation)
+void Window::add_animation(Widget *w, Animation animation)
 {
 	animations.push_back({w, animation});
 }
 
-void Window::request_remove_animations(Widget *w)
+void Window::remove_animations(Widget *w)
 {
 	swap_remove_if(animations, [w](const auto &anim) {
 		return anim.first == w;
 	});
+}
+
+void Window::add_overlay(std::shared_ptr<Widget> w)
+{
+	overlays.push_back({std::move(w), false});
+}
+
+void Window::remove_overlay(Widget *w)
+{
+	for (auto &ov : overlays) {
+		if (ov.widget.get() == w) {
+			ov.removed = true;
+			break;
+		}
+	}
+
+	assert(!"Overlay to be removed does not exist.");
 }
 
 void Window::request_focus(Interactive *w, bool keep_pinned)
@@ -119,9 +145,8 @@ void Window::update()
 		draw_cnt = 1;
 	}
 #endif
-
-	// Any new animations added by event handlers will be started in the next
-	// update, as we also need to start the timer(if no animations were playing).
+	// Any new animations added by event handlers will be started in the
+	// next update call.
 	play_animations();
 	handle_mouse_events();
 	handle_keyboard_events();
@@ -139,6 +164,11 @@ void Window::update()
 		EnableEventWaiting();
 		event_waiting_enabled = true;
 	}
+
+	// Remove the overlays which have been marked for removal.
+	swap_remove_if(overlays, [](const auto &overlay) {
+		return overlay.removed;
+	});
 }
 
 void Window::draw()
@@ -150,6 +180,26 @@ void Window::draw()
 	root_widget->draw();
 	if (debug_borders_enabled)
 		root_widget->draw_debug();
+
+	auto parent_abs_pos = [](Widget &w) {
+		if (auto p = w.get_parent())
+			return p->calc_abs_position();
+		else
+			return Point(0, 0);
+	};
+
+	// Overlays are drawn where they would appear normally inside their of
+	// parent widget but are placed on top of every other non-overlay widget.
+	// Overlays thus may shadow other non-overlay widgets.
+	for (auto &ov : overlays) {
+		push_translation(parent_abs_pos(*ov.widget));
+
+		ov.widget->draw();
+		if (debug_borders_enabled)
+			ov.widget->draw_debug();
+
+		pop_translation();
+	}
 
 	EndDrawing();
 }
@@ -182,6 +232,7 @@ void Window::set_resize_limits()
 
 void Window::handle_mouse_events()
 {
+	// TODO Decide if we should send scroll to an overlay.
 	// We always send the scroll event, since it is used by scrollable views,
 	// which are just containers and are not interactive in a general way.
 	auto scroll = vec2_to_point(GetMouseWheelMoveV());
@@ -189,12 +240,23 @@ void Window::handle_mouse_events()
 		notify_n_ack(root_widget.get(), EventType::Scroll, scroll);
 
 	Widget *hovered = nullptr;
-	// Check if the widget is interactive by sending a special event,
-	// then only it can be interacted with using the mouse/keyboard.
-	if (root_widget->collides_with_point(get_mouse_pos())) {
-		hovered = root_widget->notify(
-			Event(*this, EventType::IsInteractive, get_mouse_pos())
-		);
+
+	auto check_hovering = [&](Widget &w) {
+		if (!w.collides_with_point(get_mouse_pos()))
+			return;
+		auto ev = Event(*this, EventType::IsInteractive, get_mouse_pos());
+		hovered = w.notify(ev);
+	};
+
+	// First check if we are hovering over any of the
+	// floating-widgets(overlays) and then for the root_widget.
+	for (auto &ov : overlays) {
+		check_hovering(*ov.widget);
+		if (hovered)
+			break;
+	}
+	if (!hovered) {
+		check_hovering(*root_widget);
 	}
 
 	// *** Handle mouse button press/release and drag ***
@@ -278,15 +340,21 @@ void Window::handle_keyboard_events()
 void Window::play_animations()
 {
 	// Fixed step timing method.
-	for (animation_lag += get_update_dt(); animation_lag >= UPDATE_DELTA_TIME;
-		 animation_lag -= UPDATE_DELTA_TIME) {
-		for (auto &a : animations)
-			draw_cnt = a.second.update() ? 1 : draw_cnt;
+	// Advance frames according to time accumulated.
+	animation_lag += get_update_dt();
 
-		swap_remove_if(animations, [](const auto &a) {
-			return a.second.has_ended();
-		});
+	while (animation_lag >= UPDATE_DELTA_TIME) {
+		for (auto &a : animations) {
+			if (!a.second.has_ended())
+				draw_cnt = a.second.update() ? 1 : draw_cnt;
+		}
+
+		animation_lag -= UPDATE_DELTA_TIME;
 	}
+
+	swap_remove_if(animations, [](const auto &a) {
+		return a.second.has_ended();
+	});
 }
 
 Widget *Window::notify_n_ack(Widget *w, EventType type, Point extra)

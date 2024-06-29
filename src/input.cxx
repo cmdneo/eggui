@@ -36,14 +36,14 @@ Widget *TextInput::notify_impl(Event ev)
 	// TODO Handle more possible keypresses and text select.
 	switch (ev.type) {
 	case EventType::FocusGained:
-		ev.window.request_animation(
+		ev.window.add_animation(
 			this, Animation(TICKS_PER_SECOND, 0, true, blink)
 		);
 		return this;
 
 	case EventType::FocusLost:
 		text.set_cursor_opacity(0);
-		ev.window.request_remove_animations(this);
+		ev.window.remove_animations(this);
 		return this;
 
 	case EventType::MouseIn:
