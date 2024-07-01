@@ -8,13 +8,15 @@
 #include <vector>
 
 #include "widget.hxx"
-#include "container.hxx"
 #include "animation.hxx"
+#include "toast.hxx"
 
 namespace eggui
 {
 struct Overlay {
 	std::shared_ptr<Widget> widget;
+	// For deciding top position if an overlay overlap with other overlays.
+	int z_index;
 	// Indicate if the overlay has been marked for removal,
 	// and will be removed at the end of the current update.
 	bool removed;
@@ -23,7 +25,7 @@ struct Overlay {
 class Window
 {
 public:
-	Window(std::shared_ptr<Container> container)
+	Window(std::shared_ptr<Widget> container)
 		: root_widget(std::move(container))
 	{
 	}
@@ -59,7 +61,8 @@ public:
 
 	/// @brief Add a floating widgte.
 	/// @param w The overlay.
-	void add_overlay(std::shared_ptr<Widget> w);
+	/// @param z_index z-index in case it overlaps with other overlays.
+	void add_overlay(std::shared_ptr<Widget> w, int z_index = 1);
 	/// @brief Remove an floating widget.
 	/// @param w The widget pointet for identification.
 	void remove_overlay(Widget *w);
@@ -85,6 +88,8 @@ private:
 	/// @brief Set min and max window size as per root_widget size.
 	void set_resize_limits();
 
+	/// @brief Handle scroll events for mouse.
+	void handle_scroll_events();
 	/// @brief Handle mouse related events.
 	void handle_mouse_events();
 	/// @brief Handle key press events.
@@ -138,6 +143,7 @@ private:
 	double animation_lag = 0;
 
 	// Floating widgets, overlaid over the root widget.
+	// Kept sorted on the `z_index` field in descending order.
 	std::vector<Overlay> overlays;
 };
 } // namespace eggui

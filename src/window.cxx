@@ -1,4 +1,6 @@
 #include <cassert>
+#include <algorithm>
+#include <ranges>
 
 #include "raylib/raylib.h"
 
@@ -86,9 +88,25 @@ void Window::remove_animations(Widget *w)
 	});
 }
 
-void Window::add_overlay(std::shared_ptr<Widget> w)
+void Window::add_overlay(std::shared_ptr<Widget> w, int z_index)
 {
-	overlays.push_back({std::move(w), false});
+	// Insert so that descending order is maintained.
+	auto at = std::ranges::upper_bound(
+		overlays, Overlay{.z_index = z_index},
+		[](const Overlay &a, const Overlay &b) { return a.z_index > b.z_index; }
+	);
+
+	Overlay item{
+		.widget = std::move(w),
+		.z_index = z_index,
+		.removed = false,
+	};
+	overlays.insert(at, item);
+
+	assert(std::ranges::is_sorted(
+		overlays,
+		[](const Overlay &a, const Overlay &b) { return a.z_index > b.z_index; }
+	));
 }
 
 void Window::remove_overlay(Widget *w)
@@ -166,7 +184,8 @@ void Window::update()
 	}
 
 	// Remove the overlays which have been marked for removal.
-	swap_remove_if(overlays, [](const auto &overlay) {
+	// Cannot use swap_remove as order needs to be maintained.
+	std::ranges::remove_if(overlays, [](const auto &overlay) {
 		return overlay.removed;
 	});
 }
@@ -188,10 +207,11 @@ void Window::draw()
 			return Point(0, 0);
 	};
 
-	// Overlays are drawn where they would appear normally inside their of
+	// Overlays are drawn where they would appear normally inside of their
 	// parent widget but are placed on top of every other non-overlay widget.
-	// Overlays thus may shadow other non-overlay widgets.
-	for (auto &ov : overlays) {
+	// Draw in reverse order, so that, those with higher z-indices appears
+	// on top of those with lower z-indices in case of overlaps.
+	for (auto &ov : overlays | std::views::reverse) {
 		push_translation(parent_abs_pos(*ov.widget));
 
 		draw_widget(*ov.widget);
@@ -232,19 +252,16 @@ void Window::set_resize_limits()
 
 void Window::handle_mouse_events()
 {
-	// TODO Decide if we should send scroll to an overlay.
-	// We always send the scroll event, since it is used by scrollable views,
-	// which are just containers and are not interactive in a general way.
-	auto scroll = vec2_to_point(GetMouseWheelMoveV());
-	if (scroll.x != 0 || scroll.y != 0)
-		notify_n_ack(root_widget.get(), EventType::Scroll, scroll);
+	handle_scroll_events();
 
 	Widget *hovered = nullptr;
 
 	auto check_hovering = [&](Widget &w) {
-		if (!w.collides_with_point(get_mouse_pos()))
+		auto mpos = get_mouse_pos();
+		if (!w.collides_with_point(mpos))
 			return;
-		auto ev = Event(*this, EventType::IsInteractive, get_mouse_pos());
+
+		auto ev = Event(*this, EventType::IsInteractive, mpos);
 		hovered = notify_widget(w, ev);
 	};
 
@@ -255,9 +272,8 @@ void Window::handle_mouse_events()
 		if (hovered)
 			break;
 	}
-	if (!hovered) {
+	if (!hovered)
 		check_hovering(*root_widget);
-	}
 
 	// *** Handle mouse button press/release and drag ***
 	if (!mouse_down_over) {
@@ -316,6 +332,29 @@ void Window::handle_mouse_events()
 		notify_n_ack(hovered, EventType::MouseIn);
 		hovering_over = hovered;
 	}
+}
+
+void Window::handle_scroll_events()
+{
+	// We always send the scroll event, since it is used by scrollable views,
+	// which are just containers and are not interactive in a general way.
+	auto scroll = vec2_to_point(GetMouseWheelMoveV());
+	if (scroll.x == 0 && scroll.y == 0)
+		return;
+
+	// First check if cursor is above any of the overlays and send the scroll
+	// to it if yes, otherwise, send the scroll to the root widget.
+	for (auto &ov : overlays) {
+		auto pos = ov.widget->calc_abs_position();
+		auto size = ov.widget->get_size();
+		if (!get_mouse_pos().is_in_box(pos, size))
+			continue;
+
+		notify_n_ack(ov.widget.get(), EventType::Scroll, scroll);
+		return;
+	}
+
+	notify_n_ack(root_widget.get(), EventType::Scroll, scroll);
 }
 
 void Window::handle_keyboard_events()
