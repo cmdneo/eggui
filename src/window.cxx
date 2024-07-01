@@ -16,6 +16,14 @@ inline Point vec2_to_point(Vector2 v) { return Point(v.x, v.y); };
 
 inline Point get_mouse_pos() { return vec2_to_point(GetMousePosition()); }
 
+inline Point widget_parent_pos(Widget &w)
+{
+	if (auto p = w.get_parent())
+		return p->calc_abs_position();
+	else
+		return Point(0, 0);
+};
+
 void Window::set_title(std::string title_str)
 {
 	title = std::move(title_str);
@@ -25,11 +33,7 @@ void Window::set_title(std::string title_str)
 
 void Window::main_loop(int width_hint, int height_hint)
 {
-	// We draw frames only when something changes.
-	// A change is defined as:
-	//     A widget acknowledges responding to an event we sent to it.
-	//     State of the window changes.
-	//     A new animation frame is required.
+	assert(root_widget->get_parent() == nullptr);
 
 	layout(Point(width_hint, height_hint));
 	auto size = root_widget->get_size();
@@ -52,6 +56,11 @@ void Window::main_loop(int width_hint, int height_hint)
 	last_update_time = GetTime();
 	is_running = true;
 
+	// We draw frames only when something changes.
+	// A change is defined as:
+	//     A widget acknowledges responding to an event we sent to it.
+	//     State of the window changes.
+	//     A new animation frame is required.
 	while (!((WindowShouldClose() || close_requested) && close_action(*this))) {
 		update();
 		last_update_time = GetTime();
@@ -90,8 +99,9 @@ void Window::remove_animations(Widget *w)
 
 void Window::add_overlay(std::shared_ptr<Widget> w, int z_index)
 {
-	// Insert so that descending order is maintained.
-	auto at = std::ranges::upper_bound(
+	// Insert so that descending order is maintained first according to
+	// z_index and then according to time added.
+	auto at = std::ranges::lower_bound(
 		overlays, Overlay{.z_index = z_index},
 		[](const Overlay &a, const Overlay &b) { return a.z_index > b.z_index; }
 	);
@@ -102,11 +112,6 @@ void Window::add_overlay(std::shared_ptr<Widget> w, int z_index)
 		.removed = false,
 	};
 	overlays.insert(at, item);
-
-	assert(std::ranges::is_sorted(
-		overlays,
-		[](const Overlay &a, const Overlay &b) { return a.z_index > b.z_index; }
-	));
 }
 
 void Window::remove_overlay(Widget *w)
@@ -114,7 +119,7 @@ void Window::remove_overlay(Widget *w)
 	for (auto &ov : overlays) {
 		if (ov.widget.get() == w) {
 			ov.removed = true;
-			break;
+			return;
 		}
 	}
 
@@ -163,6 +168,7 @@ void Window::update()
 		draw_cnt = 1;
 	}
 #endif
+
 	// Any new animations added by event handlers will be started in the
 	// next update call.
 	play_animations();
@@ -185,9 +191,10 @@ void Window::update()
 
 	// Remove the overlays which have been marked for removal.
 	// Cannot use swap_remove as order needs to be maintained.
-	std::ranges::remove_if(overlays, [](const auto &overlay) {
+	auto [lo, hi] = std::ranges::remove_if(overlays, [](const auto &overlay) {
 		return overlay.removed;
 	});
+	overlays.erase(lo, hi);
 }
 
 void Window::draw()
@@ -200,19 +207,12 @@ void Window::draw()
 	if (debug_borders_enabled)
 		draw_widget_debug(*root_widget);
 
-	auto parent_abs_pos = [](Widget &w) {
-		if (auto p = w.get_parent())
-			return p->calc_abs_position();
-		else
-			return Point(0, 0);
-	};
-
 	// Overlays are drawn where they would appear normally inside of their
 	// parent widget but are placed on top of every other non-overlay widget.
 	// Draw in reverse order, so that, those with higher z-indices appears
 	// on top of those with lower z-indices in case of overlaps.
 	for (auto &ov : overlays | std::views::reverse) {
-		push_translation(parent_abs_pos(*ov.widget));
+		push_translation(widget_parent_pos(*ov.widget));
 
 		draw_widget(*ov.widget);
 		if (debug_borders_enabled)
@@ -257,7 +257,7 @@ void Window::handle_mouse_events()
 	Widget *hovered = nullptr;
 
 	auto check_hovering = [&](Widget &w) {
-		auto mpos = get_mouse_pos();
+		auto mpos = get_mouse_pos() - widget_parent_pos(w); // For overlays
 		if (!w.collides_with_point(mpos))
 			return;
 

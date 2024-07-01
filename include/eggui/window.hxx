@@ -143,7 +143,8 @@ private:
 	double animation_lag = 0;
 
 	// Floating widgets, overlaid over the root widget.
-	// Kept sorted on the `z_index` field in descending order.
+	// Kept sorted in descending order on `z_index` field, overlays
+	// with same `z_index` are then ordered on time added(most recent first).
 	std::vector<Overlay> overlays;
 };
 } // namespace eggui
