@@ -290,22 +290,16 @@ Widget *Grid::add_widget_beside(
 	if (sibling == children.end())
 		return nullptr;
 
-	auto has_flag = [](Direction flags, Direction flag) {
-		using T = std::underlying_type_t<Direction>;
-		auto uflag = static_cast<T>(flag);
-		return (static_cast<T>(flags) & uflag) == uflag;
-	};
-
 	auto gpos = sibling->grid_pos;
 
-	if (has_flag(stick, Direction::Top))
+	if (has_component(stick, Direction::Top))
 		gpos.y -= row_span;
-	else if (has_flag(stick, Direction::Bottom))
+	else if (has_component(stick, Direction::Bottom))
 		gpos.y += sibling->span.y;
 
-	if (has_flag(stick, Direction::Left))
+	if (has_component(stick, Direction::Left))
 		gpos.x += sibling->span.x;
-	else if (has_flag(stick, Direction::Right))
+	else if (has_component(stick, Direction::Right))
 		gpos.x -= column_span;
 
 	if (gpos.x < 0 || gpos.y < 0)
