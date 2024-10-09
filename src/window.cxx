@@ -252,28 +252,29 @@ void Window::set_resize_limits()
 
 void Window::handle_mouse_events()
 {
-	handle_scroll_events();
 
 	Widget *hovered = nullptr;
+	bool handeled = false;
 
-	auto check_hovering = [&](Widget &w) {
-		auto mpos = get_mouse_pos() - widget_parent_pos(w); // For overlays
-		if (!w.collides_with_point(mpos))
-			return;
-
-		auto ev = Event(*this, EventType::IsInteractive, mpos);
-		hovered = notify_widget(w, ev);
-	};
-
-	// First check if we are hovering over any of the
-	// floating-widgets(overlays) and then for the root_widget.
+	// First check if the cursor is hovering over any of the overlays
+	// and then check it for the root_widget if not.
+	// We always send the scroll event over the widget we are hovering,
 	for (auto &ov : overlays) {
-		check_hovering(*ov.widget);
-		if (hovered)
-			break;
+		auto pos = ov.widget->calc_abs_position();
+		auto size = ov.widget->get_size();
+		if (!get_mouse_pos().is_in_box(pos, size))
+			continue;
+
+		send_scroll_to(ov.widget.get());
+		hovered = notify_n_ack(ov.widget.get(), EventType::IsInteractive);
+		handeled = true;
+		break;
 	}
-	if (!hovered)
-		check_hovering(*root_widget);
+
+	if (!handeled) {
+		hovered = notify_n_ack(root_widget.get(), EventType::IsInteractive);
+		send_scroll_to(root_widget.get());
+	}
 
 	// *** Handle mouse button press/release and drag ***
 	if (!mouse_down_over) {
@@ -334,27 +335,11 @@ void Window::handle_mouse_events()
 	}
 }
 
-void Window::handle_scroll_events()
+void Window::send_scroll_to(Widget *w)
 {
-	// We always send the scroll event, since it is used by scrollable views,
-	// which are just containers and are not interactive in a general way.
 	auto scroll = vec2_to_point(GetMouseWheelMoveV());
-	if (scroll.x == 0 && scroll.y == 0)
-		return;
-
-	// First check if cursor is above any of the overlays and send the scroll
-	// to it if yes, otherwise, send the scroll to the root widget.
-	for (auto &ov : overlays) {
-		auto pos = ov.widget->calc_abs_position();
-		auto size = ov.widget->get_size();
-		if (!get_mouse_pos().is_in_box(pos, size))
-			continue;
-
-		notify_n_ack(ov.widget.get(), EventType::Scroll, scroll);
-		return;
-	}
-
-	notify_n_ack(root_widget.get(), EventType::Scroll, scroll);
+	if (scroll.x != 0 || scroll.y != 0)
+		notify_n_ack(w, EventType::Scroll, scroll);
 }
 
 void Window::handle_keyboard_events()

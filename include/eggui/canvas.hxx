@@ -24,7 +24,7 @@ class Pen; // Forward declaration
 /// 	draw_circle(Point(50, 50), 21, RGBA(255, 0, 0));
 /// @endcode
 ///
-/// @warning Do not move the canvas while it has an active pen.
+/// @note Make sure that the Canvas remains valid as long it has an active pen.
 class Canvas
 {
 	friend class Pen;
@@ -33,7 +33,16 @@ public:
 	Canvas() = default;
 
 	Canvas(Canvas &&c) = default;
-	Canvas(const Canvas &) = delete;
+
+	// If copied then make sure that it does reference any active pens.
+	Canvas(const Canvas &c)
+		: active_pen_cnt(0)
+		, size(c.size)
+		, position(c.position)
+		, region_start(c.region_start)
+		, region_size(c.region_size)
+	{
+	}
 
 	/// @brief Create a canvas.
 	/// @param position Position relative to the screen/parent-canvas.

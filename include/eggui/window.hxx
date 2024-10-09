@@ -88,8 +88,6 @@ private:
 	/// @brief Set min and max window size as per root_widget size.
 	void set_resize_limits();
 
-	/// @brief Handle scroll events for mouse.
-	void handle_scroll_events();
 	/// @brief Handle mouse related events.
 	void handle_mouse_events();
 	/// @brief Handle key press events.
@@ -101,6 +99,8 @@ private:
 	/// and record(as `draw_cnt > 0`) if the widget responded.
 	/// @return The widget which responded to the event.
 	Widget *notify_n_ack(Widget *w, EventType type, Point extra = Point(0, 0));
+	/// @brief Send scroll(if any) to the widget.
+	void send_scroll_to(Widget *w);
 	/// @brief Get time elapsed since last update.
 	/// @return Delta time.
 	double get_update_dt() const;
