@@ -14,22 +14,25 @@
 
 using namespace eggui;
 
+// TODO Fix this broken stuff.
+
 /// @brief Calculates slider position and scroll fraction for a scroll bar.
 /// @return Scroll fraction in range [0, 1]
-float calc_scroll_fraction(int bar_len, int slider_len, int click_pos)
+auto calc_scroll_fraction(int bar_len, int slider_len, int click_pos) -> float
 {
 	float start = slider_len / 2.;
 	float end = bar_len - slider_len / 2.;
 	float pos = std::clamp(float(click_pos), start, end);
 
-	if (auto space = end - start; space > 0)
+	if (auto space = end - start; space > 0) {
 		return (pos - start) / space;
+	}
 	return 0;
 }
 
 /// @brief Calculate slider center position for the scroll fraction.
 /// @return Slider center position.
-int calc_slider_pos(int bar_len, int slider_len, float scroll_frac)
+auto calc_slider_pos(int bar_len, int slider_len, float scroll_frac) -> int
 {
 	assert(0 <= scroll_frac && scroll_frac <= 1);
 	return slider_len / 2. + (bar_len - slider_len) * scroll_frac;
@@ -37,7 +40,7 @@ int calc_slider_pos(int bar_len, int slider_len, float scroll_frac)
 
 /// @brief Calculates the container start position relative to scroll view.
 /// @return container position relative to the view, is awlays <= 0.
-int calc_container_pos(int view_len, int cont_len, float scroll_frac)
+auto calc_container_pos(int view_len, int cont_len, float scroll_frac) -> int
 {
 	int overflow = cont_len - view_len;
 	return std::min(.0f, -overflow * scroll_frac);
@@ -45,7 +48,7 @@ int calc_container_pos(int view_len, int cont_len, float scroll_frac)
 
 /// @brief Calculates scrolled fraction for a container in a view.
 /// @return Scrolled fraction in range [0, 1].
-float calc_scroll_frac(int view_len, int cont_len, int cont_pos)
+auto calc_scroll_frac(int view_len, int cont_len, int cont_pos) -> float
 {
 	assert(cont_pos <= 0);
 
@@ -55,7 +58,7 @@ float calc_scroll_frac(int view_len, int cont_len, int cont_pos)
 
 /// @brief Calculate slider length for the amount of scroll needed.
 /// @return Slider length
-int calc_slider_len(int view_len, int cont_len)
+auto calc_slider_len(int view_len, int cont_len) -> int
 {
 	// Slider length should decrease with increase in overflow,
 	// stopping at a minimum value.
@@ -64,18 +67,22 @@ int calc_slider_len(int view_len, int cont_len)
 	return std::max(MIN_SLIDER_LENGTH, len);
 }
 
+// TODO Make it reveal or hide area based on last scroll direction,
+//      it is not a functional but rather a UX design issue.
 /// @brief Calculate the new container position as the view grows/shrinks.
 /// @return New container position in scrollview.
-int calc_new_container_pos(
+auto calc_new_container_pos(
 	int old_view_len, int new_view_len, int cont_len, int old_cont_pos
-)
+) -> int
 {
 	assert(old_cont_pos <= 0);
 
-	if (new_view_len >= cont_len)
+	if (new_view_len >= cont_len) {
 		return 0;
-	if (new_view_len <= old_view_len)
+	}
+	if (new_view_len <= old_view_len) {
 		return old_cont_pos;
+	}
 
 	int bottom_ovf = old_cont_pos + cont_len - old_view_len;
 	int delta = new_view_len - old_view_len;
@@ -86,29 +93,33 @@ int calc_new_container_pos(
 
 // ScrollSlider members
 //---------------------------------------------------------
-Widget *ScrollSlider::notify(Event ev)
+auto ScrollSlider::notify(Event ev) -> Widget *
 {
-	if (handle_mouse_hover_events(ev))
+	if (handle_mouse_hover_events(ev)) {
 		return this;
-	if (handle_mouse_press_events(ev))
+	}
+	if (handle_mouse_press_events(ev)) {
 		return this;
+	}
 
-	// We do not move it on drag, it is managed by the scrollbar it is in.
+	// Notify its parent(which is scrollbar) to do the scrolling work on drag.
 	if (ev.type == EventType::MouseDrag) {
 		on_drag(ev.delta);
 		return this;
 	}
 
-	return Interactive::notify(ev);
+	return nullptr;
 }
 
 void ScrollSlider::draw()
 {
 	auto color = BUTTON_COLOR;
-	if (is_hovering)
+	if (is_hovering) {
 		color = BUTTON_HOVER_COLOR;
-	if (is_pressed)
+	}
+	if (is_pressed) {
 		color = BUTTON_CLICK_COLOR;
+	}
 
 	draw_rect(Point(), get_size(), color);
 }
@@ -118,35 +129,43 @@ void ScrollSlider::draw()
 ScrollBar::ScrollBar(int w, int h, Axis axis)
 	: Interactive(w, h)
 	, slider(0, 0)
-	, scroll_axis(axis)
+	, AXIS(axis)
 {
+	// Slider size is set depending upon its orientation(X or Y).
 	Point size;
-	size[scroll_axis] = MIN_SLIDER_LENGTH;
-	size[1 - scroll_axis] = SCROLL_BAR_WIDTH;
-
-	slider.set_parent(this);
+	size[AXIS] = MIN_SLIDER_LENGTH;
+	size[1 - AXIS] = SCROLL_BAR_WIDTH;
 	slider.set_all_sizes(size);
+	slider.set_parent(this);
 
 	slider.set_on_drag([this](Point delta) {
-		auto click_pos = slider.get_center_position() + delta;
-		scroll_to_position(click_pos);
+		// Scroll according to slider drag by user.
+		auto new_pos = slider.get_center_pos() + delta;
+		const auto frac = calc_scroll_fraction(
+			get_size()[AXIS], slider.get_size()[AXIS], new_pos[AXIS]
+		);
+
+		set_scroll_fraction(frac);
 	});
 }
 
-Widget *ScrollBar::notify(Event ev)
+auto ScrollBar::notify(Event ev) -> Widget *
 {
-	if (slider.collides_with_point(ev.cursor))
+	if (slider.collides_with_point(ev.cursor)) {
 		return notify_widget(slider, ev);
+	}
 
-	if (handle_mouse_hover_events(ev))
+	if (handle_mouse_hover_events(ev)) {
 		return this;
+	}
 
-	if (ev.type != EventType::MousePressed)
-		return Interactive::notify(ev);
+	if (ev.type != EventType::MousePressed) {
+		return nullptr;
+	}
 
 	// If pressed anywhere on the bar but not on the slider then,
 	// we pretend that the slider was dragged to that position.
-	auto pos = slider.get_center_position();
+	auto pos = slider.get_center_pos();
 	Event dragged(ev.window, EventType::MouseDrag, pos);
 	dragged.delta = ev.cursor - pos;
 
@@ -171,27 +190,18 @@ void ScrollBar::draw()
 	draw_widget(slider);
 }
 
-void ScrollBar::scroll_to_position(Point bar_click_pos)
-{
-	const auto frac = calc_scroll_fraction(
-		get_size()[scroll_axis], slider.get_size()[scroll_axis],
-		bar_click_pos[scroll_axis]
-	);
-
-	set_scroll_fraction(frac);
-}
-
 void ScrollBar::set_scroll_fraction(float frac)
 {
 	assert(0 <= frac && frac <= 1);
 
-	int pos = calc_slider_pos(
-		get_size()[scroll_axis], slider.get_size()[scroll_axis], frac
-	);
-	pos -= slider.get_size()[scroll_axis] / 2.;
+	int pos = calc_slider_pos(get_size()[AXIS], slider.get_size()[AXIS], frac);
+	pos -= slider.get_size()[AXIS] / 2.;
 
-	Point offsets[] = {Point(pos, 0), Point(0, pos)};
-	slider.set_position(offsets[scroll_axis]);
+	if (AXIS == Axis::X) {
+		slider.set_xpos(pos);
+	} else {
+		slider.set_ypos(pos);
+	}
 
 	scroll_fraction = frac;
 	on_scroll(scroll_fraction);
@@ -200,137 +210,89 @@ void ScrollBar::set_scroll_fraction(float frac)
 void ScrollBar::set_slider_len(int len)
 {
 	auto size = slider.get_size();
-	size[scroll_axis] = len;
+	size[AXIS] = len;
 	slider.set_all_sizes(size);
 }
 
-// VScrollView members
+// ScrollArea members
 //---------------------------------------------------------
-VScrollView::VScrollView(int w, int h, std::shared_ptr<Widget> child_)
+ScrollArea::ScrollArea(int w, int h, std::shared_ptr<Widget> child_)
 	: Container(w, h)
 	, child(std::move(child_))
 {
 	child->set_parent(this);
-
-	scrollbar.emplace(0, 0, AXIS);
-	scrollbar->set_parent(this);
-
-	scrollbar->set_on_scroll([this](float frac) {
-		auto view_len = get_size()[AXIS];
-		auto cont_len = child->get_size()[AXIS];
-		auto pos = child->get_position();
-
-		pos[AXIS] = calc_container_pos(view_len, cont_len, frac);
-		child->set_position(pos);
-	});
 }
 
-void VScrollView::layout_children(Point size_hint)
+void ScrollArea::set_scroll(bool scroll_in_x, bool scroll_in_y)
 {
-	size_hint = clamp_components(size_hint, get_min_size(), get_max_size());
-
-	// For vertical scroll the available height provided to the child is its
-	// preferred height, since the height is unbounded in vertical scroll.
-	// But the available width, it is width available minus bar width.
-	auto avail_size = size_hint - calc_bars_size();
-	avail_size[AXIS] = child->get_preffered_size()[AXIS];
-
-	auto child_size = calc_stretched_size(
-		child->get_min_size(), child->get_max_size(), avail_size,
-		Fill::RowNColumn
-	);
-	int child_pos = calc_new_container_pos(
-		get_size()[AXIS], size_hint[AXIS], child_size[AXIS],
-		child->get_position()[AXIS]
-	);
-
-	child->set_size(child_size);
-	if (AXIS == ScrollBar::Axis::X)
-		child->set_xpos(child_pos);
-	else
-		child->set_ypos(child_pos);
-
-	auto frac = calc_scroll_frac(
-		get_size()[AXIS], child->get_size()[AXIS], child->get_position()[AXIS]
-	);
-	scrollbar->set_scroll_fraction(frac);
-	scrollbar->set_size(Point(SCROLL_BAR_WIDTH, size_hint.y));
-	scrollbar->set_position(Point(size_hint.x - SCROLL_BAR_WIDTH, 0));
-
-	// Set slider length depending on how much content is overflowing.
-	// Like if oveflow is less then, less scroll is needed, so we increase
-	// slide length to decrease its scroll space and vice-versa.
-	auto len = calc_slider_len(size_hint[AXIS], child->get_size()[AXIS]);
-	scrollbar->set_slider_len(len);
-
-	Widget::set_size(size_hint);
+	is_xscroll = scroll_in_x;
+	is_yscroll = scroll_in_y;
 }
 
-Point VScrollView::calc_layout_info()
-
+auto ScrollArea::notify(Event ev) -> Widget *
 {
-	calc_layout_info_if_container(*child);
+	auto inner = notify_widget(*child, ev);
 
-	// TODO respect the requested size and add reasonable margins from scrollbar.
-	Point min_size = child->get_min_size() + calc_bars_size();
-	Point max_size = child->get_max_size() + calc_bars_size();
-
-	// Height is unbounded in a vertical scroll view, therefore, for maximum
-	// we put no limit, and for minimum we preserve what was given.
-	min_size[AXIS] = get_min_size()[AXIS];
-	max_size[AXIS] = UNLIMITED_MAX_SIZE;
-	set_min_size(min_size);
-	set_max_size(max_size);
-
-	scrollbar->set_min_size(Point(SCROLL_BAR_WIDTH, min_size[AXIS]));
-	scrollbar->set_max_size(Point(SCROLL_BAR_WIDTH, max_size[AXIS]));
-
-	return get_min_size();
-}
-
-Widget *VScrollView::notify(Event ev)
-{
 	// Find the innermost scrollable widget, if none exists then,
 	// this is the one. Scrollbale means responds to scroll event.
-	if (ev.type == EventType::Scroll) {
-		auto inner = notify_widget(*child, ev);
-		if (inner)
-			return inner;
+	if (inner == nullptr && ev.type == EventType::Scroll) {
+		// Scroll gives the direction content should go [negative is up].
+		// TODO Implement scroll acceleration. In the window module prefereably.
+		Point excess = child->get_size() - get_size();
+		// Do not scroll if overflow is absent or scrolling is disabled.
+		if (excess.x <= 0 || !is_xscroll) {
+			ev.scroll.x = 0;
+		}
+		if (excess.y <= 0 || !is_yscroll) {
+			ev.scroll.y = 0;
+		}
 
-		// Scroll gives the direction content should go, and if scroll is
-		// negative, then content should go up.
-		// For every scroll we scroll content multiplied by a factor.
-		// TODO Implement scroll acceleration. In the window module prefereable.
-		double excess = child->get_size()[AXIS] - get_size()[AXIS];
-		if (excess <= 0)
-			return this;
-		double offset = child->get_position()[AXIS];
-		offset += SCROLL_FACTOR * ev.scroll[AXIS];
+		Point pos = child->get_position() + SCROLL_FACTOR * ev.scroll;
+		pos = clamp_components(pos, -excess, Point(0, 0));
+		child->set_position(pos);
 
-		double scroll = -offset / excess;
-		scroll = std::clamp(scroll, 0.0, 1.0);
-		scrollbar->set_scroll_fraction(scroll);
-
+		xscroll = std::clamp(-1.0 * pos.x / excess.x, 0.0, 1.0);
+		yscroll = std::clamp(-1.0 * pos.y / excess.y, 0.0, 1.0);
 		return this;
 	}
 
-	if (scrollbar->collides_with_point(ev.cursor))
-		return notify_widget(*scrollbar, ev);
-
-	return notify_widget(*child, ev);
+	return inner;
 }
 
-void VScrollView::draw()
-{
-	draw_widget(*child);
-	draw_widget(*scrollbar);
-}
+void ScrollArea::draw() { draw_widget(*child); }
 
-void VScrollView::draw_debug()
+void ScrollArea::draw_debug()
 {
 	Widget::draw_debug();
-	draw_widget_debug(*scrollbar);
 	draw_widget_debug(*child);
 }
 
-Point VScrollView::calc_bars_size() const { return Point(SCROLL_BAR_WIDTH, 0); }
+void ScrollArea::layout_children(Point size_hint)
+{
+	// As it is a scroll-area its size has no effect on its child's size.
+	// Preserves child size or layouts if child is a container to its min size.
+	child->set_size(child->get_min_size());
+	Widget::set_size(get_min_size());
+}
+
+auto ScrollArea::calc_layout_info() -> Point
+{
+	calc_layout_info_if_container(*child);
+
+	// As it is a scroll-area its child has no effect on its size.
+	// If scrolling is disabled along an axis then fit to the child's size
+	// in that axis by stretching or contracting.
+	auto min_sz = child->get_min_size();
+	auto size = get_size();
+	if (!is_xscroll) {
+		size.x = min_sz.x;
+	}
+	if (!is_yscroll) {
+		size.y = min_sz.y;
+	}
+
+	// TODO Add dynamic sizing for scrolling direction, infinite maybe.
+	set_max_size(size);
+	set_min_size(size);
+	return size;
+}

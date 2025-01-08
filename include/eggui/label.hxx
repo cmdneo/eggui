@@ -2,6 +2,7 @@
 #define LABEL_HXX_INCLUDED
 
 #include <string>
+#include <utility>
 
 #include "widget.hxx"
 
@@ -15,7 +16,7 @@ public:
 		FontSize font_size_ = FontSize::Medium
 	)
 		: Widget(w, h)
-		, text(text_)
+		, text(std::move(text_))
 		, color(color_)
 		, font_size(font_size_)
 	{

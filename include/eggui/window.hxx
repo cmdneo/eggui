@@ -25,7 +25,7 @@ struct Overlay {
 class Window
 {
 public:
-	Window(std::shared_ptr<Widget> container)
+	explicit Window(std::shared_ptr<Widget> container)
 		: root_widget(std::move(container))
 	{
 	}
@@ -98,12 +98,13 @@ private:
 	/// @brief Send event to the widget along with current cursor position
 	/// and record(as `draw_cnt > 0`) if the widget responded.
 	/// @return The widget which responded to the event.
-	Widget *notify_n_ack(Widget *w, EventType type, Point extra = Point(0, 0));
+	auto notify_n_ack(Widget *w, EventType type, Point extra = Point(0, 0))
+		-> Widget *;
 	/// @brief Send scroll(if any) to the widget.
 	void send_scroll_to(Widget *w);
 	/// @brief Get time elapsed since last update.
 	/// @return Delta time.
-	double get_update_dt() const;
+	[[nodiscard]] auto get_update_dt() const -> double;
 
 	// Window title.
 	std::string title = "EGGUI Window";

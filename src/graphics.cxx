@@ -6,8 +6,8 @@
 
 #define GRAPHICS_API_OPENGL_33
 
-#include "raylib/raylib.h"
-#include "raylib/rlgl.h"
+#include "raylib.h"
+#include "rlgl.h"
 
 #include "roboto_mono.bin.h"
 #include "graphics.hxx"
@@ -23,17 +23,17 @@ static Font g_mono_fonts[FONT_SIZE_COUNT];
 
 // Conversion and functions
 //---------------------------------------------------------
-constexpr inline Color to_color(RGBA rgba)
+constexpr inline auto to_color(RGBA rgba) -> Color
 {
 	return Color{rgba.r, rgba.g, rgba.b, rgba.a};
 }
 
-constexpr inline Vector2 to_vec2(Point point)
+constexpr inline auto to_vec2(Point point) -> Vector2
 {
 	return Vector2{static_cast<float>(point.x), static_cast<float>(point.y)};
 }
 
-inline Rectangle points_to_rect(Point pos, Point size)
+inline auto points_to_rect(Point pos, Point size) -> Rectangle
 {
 	Rectangle ret;
 	ret.x = pos.x;
@@ -46,7 +46,7 @@ inline Rectangle points_to_rect(Point pos, Point size)
 
 // Calculation & transformation functions
 //---------------------------------------------------------
-inline Rectangle shrink_from_center(Rectangle rect, float x, float y)
+inline auto shrink_from_center(Rectangle rect, float x, float y) -> Rectangle
 {
 	rect.x += x;
 	rect.y += y;
@@ -55,16 +55,17 @@ inline Rectangle shrink_from_center(Rectangle rect, float x, float y)
 	return rect;
 }
 
-inline int calc_segments(float radius, float angle = 360.0)
+inline auto calc_segments(float radius, float angle = 360.0) -> int
 {
 	angle = std::abs(angle);
 	// Too many segments value causes artifacts at corners when AA4X is enabled.
-	if (radius < 5.)
+	if (radius < 5.) {
 		return 10. * angle / 360;
+	}
 	return radius * 1.5 * angle / 360;
 }
 
-inline int get_index_for_font_size(eggui::FontSize font_size)
+inline auto get_index_for_font_size(eggui::FontSize font_size) -> int
 {
 	return static_cast<int>(font_size);
 }
@@ -84,8 +85,9 @@ void init_graphics()
 
 void deinit_graphics()
 {
-	for (auto &font : g_mono_fonts)
+	for (auto &font : g_mono_fonts) {
 		UnloadFont(font);
+	}
 }
 
 void push_translation(Point pt)
@@ -96,13 +98,16 @@ void push_translation(Point pt)
 
 void pop_translation() { rlPopMatrix(); }
 
-Point get_total_translation()
+auto get_total_translation() -> Point
 {
 	auto tmat = rlGetMatrixTransform();
 	return Point(tmat.m12, tmat.m13);
 }
 
-Point get_window_size() { return Point(GetScreenWidth(), GetScreenHeight()); }
+auto get_window_size() -> Point
+{
+	return Point(GetScreenWidth(), GetScreenHeight());
+}
 
 void set_cursor_shape(CursorShape shape)
 {
@@ -170,6 +175,15 @@ void draw_rounded_rect(Point position, Point size, float round, RGBA color)
 	DrawRectangleRounded(rect, round, segs, to_color(color));
 }
 
+void draw_rounded_rect_lines(
+	Point position, Point size, float round, float thickness, RGBA color
+)
+{
+	auto rect = points_to_rect(position, size);
+	auto segs = calc_segments(std::min(position.x, position.y) / 2. * round);
+	DrawRectangleRoundedLinesEx(rect, round, segs, thickness, to_color(color));
+}
+
 void draw_cirlce(Point center, float radius, RGBA color)
 {
 	DrawCircle(center.x, center.y, radius, to_color(color));
@@ -209,7 +223,7 @@ void draw_text(
 	);
 }
 
-Point tell_text_size(const char *text, FontSize font_size)
+auto tell_text_size(const char *text, FontSize font_size) -> Point
 {
 	int idx = get_index_for_font_size(font_size);
 	auto sz = MeasureTextEx(g_mono_fonts[idx], text, FONT_PX_SIZES[idx], 0);

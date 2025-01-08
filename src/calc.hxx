@@ -16,9 +16,9 @@ namespace eggui
 /// @param halign Horizontal alignment.
 /// @param valign Vertical alignment.
 /// @return Position of the child within container.
-Point calc_align_offset(
+auto calc_align_offset(
 	Point child_size, Point cont_size, Alignment halign, Alignment valign
-);
+) -> Point;
 
 /// @brief Calculates stretched size of the box within another box.
 /// @param min_size Minimum size of the inner box.
@@ -27,18 +27,18 @@ Point calc_align_offset(
 /// @param fill Fill mode for stretching.
 /// @return Calculated size.
 /// For each dimension: if `size_avail < min_size` then returns `min_size`.
-Point calc_stretched_size(
+auto calc_stretched_size(
 	Point min_size, Point max_size, Point avail_size, Fill fill
-);
+) -> Point;
 
 /// @brief Calculates offsets of boxes for layout and puts them is `result`.
 /// @param sizes Length of each box.
 /// @param gap Gap between boxes along the length.
 /// @param result Result parameter: offsets of boxes from 0.
 /// @return Total length of the container containing the boxes.
-int calc_box_offsets(
+auto calc_box_offsets(
 	const std::vector<int> &sizes, int gap, std::vector<int> &result
-);
+) -> int;
 
 /// @brief Calculate how much space should be used by each box.
 /// @param min_sizes Minimum size of each box.
@@ -54,7 +54,7 @@ void calc_expanded_size(
 /// @param lens Lengths of the boxes.
 /// @param gap Gap between each box.
 /// @return Total length.
-int calc_length_with_gaps(const std::vector<int> &lenghts, int gap);
+auto calc_length_with_gaps(const std::vector<int> &lenghts, int gap) -> int;
 } // namespace eggui
 
 #endif

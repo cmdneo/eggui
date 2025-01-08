@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <utility>
 
-#include "raylib/raylib.h"
+#include "raylib.h"
 
 #include "point.hxx"
 #include "managers.hxx"
@@ -12,10 +12,10 @@ using std::max;
 using std::min;
 using std::pair;
 
-using namespace eggui;
+using eggui::Point;
 
-pair<Point, Point>
-find_intersection(pair<Point, Point> rect1, pair<Point, Point> rect2)
+auto find_intersection(pair<Point, Point> rect1, pair<Point, Point> rect2)
+	-> pair<Point, Point>
 {
 	// Normalized rectangles, where a <= a1 and b <= b1.
 	auto a = rect1.first;
@@ -25,15 +25,18 @@ find_intersection(pair<Point, Point> rect1, pair<Point, Point> rect2)
 
 	auto c = Point(max(a.x, b.x), max(a.y, b.y));
 	auto c1 = Point(min(a1.x, b1.x), min(a1.y, b1.y));
-	if (c1.x < c.x || c1.y < c.y)
+	if (c1.x < c.x || c1.y < c.y) {
 		c1 = c;
+	}
 
-	return pair(c, c1 - c);
+	return {c, c1 - c};
 }
 
 // Clipping manager members
 //---------------------------------------------------------
-ClippingManager &ClippingManager::instance()
+namespace eggui
+{
+auto ClippingManager::instance() -> ClippingManager &
 {
 	static ClippingManager obj;
 	return obj;
@@ -47,8 +50,9 @@ void ClippingManager::push_clip_area(Point start, Point size)
 	auto [pos, sz] = new_area;
 
 	// Remove the previous area, we restore it when this new area is removed.
-	if (!clip_areas.empty())
+	if (!clip_areas.empty()) {
 		EndScissorMode();
+	}
 
 	BeginScissorMode(pos.x, pos.y, sz.x, sz.y);
 	clip_areas.push_back(new_area);
@@ -74,8 +78,9 @@ void ClippingManager::disable()
 	assert(is_enabled);
 	is_enabled = false;
 
-	if (!clip_areas.empty())
+	if (!clip_areas.empty()) {
 		EndScissorMode();
+	}
 }
 
 void ClippingManager::enable()
@@ -83,35 +88,39 @@ void ClippingManager::enable()
 	assert(!is_enabled);
 	is_enabled = true;
 
-	if (clip_areas.empty())
+	if (clip_areas.empty()) {
 		return;
+	}
 
 	auto [pos, sz] = clip_areas.back();
 	BeginScissorMode(pos.x, pos.y, sz.x, sz.y);
 }
 
-pair<Point, Point> ClippingManager::get_current_clip_region() const
+auto ClippingManager::get_current_clip_region() const -> pair<Point, Point>
 {
-	if (clip_areas.empty())
-		return pair(Point(0, 0), get_window_size());
-	else
+	if (clip_areas.empty()) {
+		return {Point(0, 0), get_window_size()};
+	} else {
 		return clip_areas.back();
+	}
 }
 
-pair<Point, Point>
-ClippingManager::calc_clip_area(Point start, Point size) const
+auto ClippingManager::calc_clip_area(Point start, Point size) const
+	-> pair<Point, Point>
 {
 	auto new_area = pair(start, size);
-	if (!clip_areas.empty())
+	if (!clip_areas.empty()) {
 		new_area = find_intersection(new_area, clip_areas.back());
+	}
 
 	return new_area;
 }
 
 // Font manager members
 //---------------------------------------------------------
-FontManager &FontManager::instance()
+auto FontManager::instance() -> FontManager &
 {
 	static FontManager obj;
 	return obj;
 }
+} // namespace eggui

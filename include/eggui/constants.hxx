@@ -36,7 +36,7 @@ enum class Direction : unsigned {
 	BottomRight = Bottom | Right,
 };
 
-inline bool has_component(Direction dir, Direction comp)
+inline auto has_component(Direction dir, Direction comp) -> bool
 {
 	return (static_cast<unsigned>(dir) & static_cast<unsigned>(comp)) != 0;
 }

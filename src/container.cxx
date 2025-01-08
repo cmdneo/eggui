@@ -56,7 +56,7 @@ void PaddedBox::layout_children(Point size_hint)
 	Widget::set_size(cont_size);
 }
 
-Point PaddedBox::calc_layout_info()
+auto PaddedBox::calc_layout_info() -> Point
 {
 	calc_layout_info_if_container(*child);
 
@@ -66,10 +66,11 @@ Point PaddedBox::calc_layout_info()
 	return get_min_size();
 }
 
-Widget *PaddedBox::notify(Event ev)
+auto PaddedBox::notify(Event ev) -> Widget *
 {
-	if (child->collides_with_point(ev.cursor))
+	if (child->collides_with_point(ev.cursor)) {
 		return notify_widget(*child, ev);
+	}
 	return nullptr;
 }
 
@@ -83,7 +84,7 @@ void PaddedBox::draw_debug()
 
 // LinearBox members
 //---------------------------------------------------------
-Widget *LinearBox::add_widget_start(std::shared_ptr<Widget> child)
+auto LinearBox::add_widget_start(std::shared_ptr<Widget> child) -> Widget *
 {
 	assert(!child->get_parent());
 	child->set_parent(this);
@@ -97,7 +98,7 @@ Widget *LinearBox::add_widget_start(std::shared_ptr<Widget> child)
 	return start_children.back().widget.get();
 }
 
-Widget *LinearBox::add_widget_end(std::shared_ptr<Widget> child)
+auto LinearBox::add_widget_end(std::shared_ptr<Widget> child) -> Widget *
 {
 	assert(!child->get_parent());
 	child->set_parent(this);
@@ -111,15 +112,17 @@ Widget *LinearBox::add_widget_end(std::shared_ptr<Widget> child)
 	return end_children.back().widget.get();
 }
 
-Widget *LinearBox::notify(Event ev)
+auto LinearBox::notify(Event ev) -> Widget *
 {
 	for (auto &c : start_children) {
-		if (c.widget->collides_with_point(ev.cursor))
+		if (c.widget->collides_with_point(ev.cursor)) {
 			return notify_widget(*c.widget, ev);
+		}
 	}
 	for (auto &c : end_children) {
-		if (c.widget->collides_with_point(ev.cursor))
+		if (c.widget->collides_with_point(ev.cursor)) {
 			return notify_widget(*c.widget, ev);
+		}
 	}
 
 	return nullptr;
@@ -140,12 +143,14 @@ void LinearBox::draw_debug()
 		draw_rect_lines(start, size, GAP_COLOR);
 
 		start[axis] += size[axis];
-		if (item_gap == 0 || i == cell_sizes.size() - 1)
+		if (item_gap == 0 || i == cell_sizes.size() - 1) {
 			continue;
+		}
 
 		// Fill the gap if it exists for the cell.
-		if (item_gap == 0)
+		if (item_gap == 0) {
 			continue;
+		}
 		Point gap_size;
 		gap_size[axis] = item_gap;
 		gap_size[1 - axis] = get_size()[1 - axis];
@@ -154,18 +159,22 @@ void LinearBox::draw_debug()
 
 	Container::draw_debug();
 
-	for (auto &c : start_children)
+	for (auto &c : start_children) {
 		draw_widget_debug(*c.widget);
-	for (auto &c : end_children)
+	}
+	for (auto &c : end_children) {
 		draw_widget_debug(*c.widget);
+	}
 }
 
 void LinearBox::draw()
 {
-	for (auto &c : start_children)
+	for (auto &c : start_children) {
 		draw_widget(*c.widget);
-	for (auto &c : end_children)
+	}
+	for (auto &c : end_children) {
 		draw_widget(*c.widget);
+	}
 }
 
 void LinearBox::layout_children(Point size_hint)
@@ -217,15 +226,17 @@ void LinearBox::layout_children(Point size_hint)
 
 	// Set position and size for each widget.
 	int i = 0;
-	for (auto &c : start_children)
+	for (auto &c : start_children) {
 		calc_size_n_pos(c, i++);
-	for (auto &c : end_children | views::reverse)
+	}
+	for (auto &c : end_children | views::reverse) {
 		calc_size_n_pos(c, i++);
+	}
 
 	Widget::set_size(size_hint);
 }
 
-Point LinearBox::calc_layout_info()
+auto LinearBox::calc_layout_info() -> Point
 {
 	Point max_size(0, 0);
 	Point min_size(0, 0);
@@ -251,8 +262,9 @@ Point LinearBox::calc_layout_info()
 	int min_len = calc_length_with_gaps(cell_min_sizes, item_gap);
 	int max_len = calc_length_with_gaps(cell_max_sizes, item_gap);
 
-	if (expand_to_fill)
+	if (expand_to_fill) {
 		max_len = UNLIMITED_MAX_SIZE;
+	}
 
 	if (orientation == Orientation::Horizontal) {
 		set_min_size(Point(min_len, min_size.y));
@@ -265,7 +277,7 @@ Point LinearBox::calc_layout_info()
 	return get_min_size();
 }
 
-Point LinearBox::calc_gap_size() const
+auto LinearBox::calc_gap_size() const -> Point
 {
 	auto g = item_gap * (start_children.size() + end_children.size() - 1);
 	return Point(g, g);
@@ -273,11 +285,11 @@ Point LinearBox::calc_gap_size() const
 
 // Grid members
 //---------------------------------------------------------
-Widget *Grid::add_widget_beside(
+auto Grid::add_widget_beside(
 	std::shared_ptr<Widget> child, const Widget *beside, Direction stick,
 	int column_span, int row_span
 
-)
+) -> Widget *
 {
 	assert(!child->get_parent());
 	assert(beside);
@@ -287,31 +299,35 @@ Widget *Grid::add_widget_beside(
 	auto sibling = std::ranges::find_if(children, [beside](Child &c) {
 		return c.widget.get() == beside;
 	});
-	if (sibling == children.end())
+	if (sibling == children.end()) {
 		return nullptr;
+	}
 
 	auto gpos = sibling->grid_pos;
 
-	if (has_component(stick, Direction::Top))
+	if (has_component(stick, Direction::Top)) {
 		gpos.y -= row_span;
-	else if (has_component(stick, Direction::Bottom))
+	} else if (has_component(stick, Direction::Bottom)) {
 		gpos.y += sibling->span.y;
+	}
 
-	if (has_component(stick, Direction::Left))
+	if (has_component(stick, Direction::Left)) {
 		gpos.x += sibling->span.x;
-	else if (has_component(stick, Direction::Right))
+	} else if (has_component(stick, Direction::Right)) {
 		gpos.x -= column_span;
+	}
 
-	if (gpos.x < 0 || gpos.y < 0)
+	if (gpos.x < 0 || gpos.y < 0) {
 		return nullptr;
+	}
 
 	return add_widget(std::move(child), gpos.x, gpos.y, column_span, row_span);
 }
 
-Widget *Grid::add_widget(
+auto Grid::add_widget(
 	std::shared_ptr<Widget> child, int column, int row, int column_span,
 	int row_span
-)
+) -> Widget *
 {
 	assert(!child->get_parent());
 	assert(row >= 0);
@@ -324,16 +340,19 @@ Widget *Grid::add_widget(
 
 	// Newly added widget should not overlap with existing ones.
 	for (auto &c : children) {
-		if (check_box_collision(pos, span, c.grid_pos, c.span))
+		if (check_box_collision(pos, span, c.grid_pos, c.span)) {
 			return nullptr;
+		}
 	}
 
 	// Extend the grid if its too small for the widget.
 	auto end = pos + span;
-	if (end.x > col_count)
+	if (end.x > col_count) {
 		col_count = end.x;
-	if (end.y > row_count)
+	}
+	if (end.y > row_count) {
 		row_count = end.y;
+	}
 
 	auto ret_ptr = child.get();
 	child->set_parent(this);
@@ -347,11 +366,12 @@ Widget *Grid::add_widget(
 	return ret_ptr;
 }
 
-Widget *Grid::notify(Event ev)
+auto Grid::notify(Event ev) -> Widget *
 {
 	for (auto &c : children) {
-		if (!c.widget->collides_with_point(ev.cursor))
+		if (!c.widget->collides_with_point(ev.cursor)) {
 			continue;
+		}
 		return notify_widget(*c.widget, ev);
 	}
 
@@ -369,8 +389,9 @@ void Grid::draw_debug()
 
 		// Fill the gap
 		start += Point(size.x, 0);
-		if (col_gap != 0 && i != col_count - 1)
+		if (col_gap != 0 && i != col_count - 1) {
 			draw_rect(start, Point(col_gap, get_size().y), GAP_FILL_COLOR);
+		}
 	}
 
 	for (int i = 0; i < row_count; ++i) {
@@ -380,21 +401,24 @@ void Grid::draw_debug()
 
 		// Fill the gap
 		start += Point(0, size.y);
-		if (row_gap != 0 && i != row_count - 1)
+		if (row_gap != 0 && i != row_count - 1) {
 			draw_rect(start, Point(get_size().x, row_gap), GAP_FILL_COLOR);
+		}
 	}
 
 	// Draw the outer box over grid lines, since lines are drawn as rectangles.
 	Widget::draw_debug();
 
-	for (auto &c : children)
+	for (auto &c : children) {
 		draw_widget_debug(*c.widget);
+	}
 }
 
 void Grid::draw()
 {
-	for (auto &c : children)
+	for (auto &c : children) {
 		draw_widget(*c.widget);
+	}
 }
 
 void Grid::layout_children(Point size_hint)
@@ -449,15 +473,16 @@ void Grid::layout_children(Point size_hint)
 	Widget::set_size(cont_size);
 }
 
-Point Grid::calc_layout_info()
+auto Grid::calc_layout_info() -> Point
 {
 	alloc_row_col_data();
 
 	// We do layout calculation for inner containers but do not actually
 	// layout their children, since doing that requires size available
 	// for the container which we not have right now.
-	for (auto &c : children)
+	for (auto &c : children) {
 		calc_layout_info_if_container(*c.widget);
+	}
 
 	// Calculate minimum and maximum size of each row and column.
 	// If a widget spans multiple cells then, we also need to consider the

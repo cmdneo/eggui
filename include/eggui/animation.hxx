@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <functional>
+#include <utility>
 
 /// @brief Animation object, can be attached to a widget by requesting the window.
 class Animation
@@ -15,36 +16,38 @@ public:
 		: delay(delay_)
 		, duration(duration_)
 		, is_looping(loop)
-		, next_frame_callback(next_frame_cb)
+		, next_frame_callback(std::move(next_frame_cb))
 	{
 	}
 
 	/// @brief Update by advancing to the next animation frame.
 	/// @return Returns true if re-drawing of the widget is needed.
 	/// @note Should not be called on an animation which has ended.
-	bool update()
+	auto update() -> bool
 	{
 		assert(tick <= duration);
 
 		elapsed++;
-		if (elapsed <= delay)
+		if (elapsed <= delay) {
 			return false;
+}
 
 		// Ticks provided are from 0-duration and progress from 0-100.
 		// Thus the total number of times next_frame_callback is called on an
 		// animation is duration+1 times, the one extra comes from the need
 		// to call the next_frame_callback when the animation ends.
-		auto progress = float(tick) / duration;
+		auto progress = static_cast<float>(tick) / duration;
 		auto changed = next_frame_callback(tick, progress);
 		tick++;
 
-		if (tick > duration && is_looping)
+		if (tick > duration && is_looping) {
 			tick = 0;
+}
 
 		return changed;
 	}
 
-	bool has_ended() const { return tick > duration; }
+	[[nodiscard]] auto has_ended() const -> bool { return tick > duration; }
 
 private:
 	// Time in ticks, 1 / TICKS_PER_SECOND = UPDATE_DELTA_TIME

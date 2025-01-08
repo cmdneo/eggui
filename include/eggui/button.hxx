@@ -25,7 +25,7 @@ public:
 	void set_size(Point new_size) override;
 
 protected:
-	Widget *notify(Event ev) override;
+	auto notify(Event ev) -> Widget * override;
 	void draw() override;
 
 private:

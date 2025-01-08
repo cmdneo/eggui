@@ -30,6 +30,7 @@ add_library(eggui
 	src/draggable.cxx
 
 	src/label.cxx
+	src/toast.cxx
 
 	src/button.cxx
 	src/input.cxx

@@ -1,6 +1,6 @@
 #include <cassert>
 
-#include "raylib/raylib.h"
+#include "raylib.h"
 
 #include "canvas.hxx"
 #include "graphics.hxx"
@@ -11,7 +11,7 @@ using namespace eggui;
 
 // Canvas class members
 //---------------------------------------------------------
-Pen Canvas::acquire_pen(bool enable_cliping)
+auto Canvas::acquire_pen(bool enable_cliping) -> Pen
 {
 	assert(active_pen_cnt == 0);
 	return Pen(*this, enable_cliping);
@@ -48,8 +48,9 @@ Pen::Pen(Canvas &canvas_, bool is_clipping_)
 	clip_rect_pos = pos - get_total_translation(); // Make position relative
 	clip_rect_size = sz;
 
-	if (is_clipping)
+	if (is_clipping) {
 		ClippingManager::instance().push_clip_area(start, size);
+	}
 }
 
 Pen::~Pen()
@@ -57,6 +58,7 @@ Pen::~Pen()
 	pop_translation();
 	canvas.active_pen_cnt--;
 
-	if (is_clipping)
+	if (is_clipping) {
 		ClippingManager::instance().pop_clip_area();
+	}
 }

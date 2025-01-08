@@ -14,26 +14,30 @@ namespace eggui
 {
 class Container : public Widget
 {
+	friend auto calc_layout_info_if_container(Widget &w) -> Point;
+
 public:
 	Container(int w = 0, int h = 0)
 		: Widget(0, 0, w, h)
 	{
 	}
 
+	void set_size(Point new_size) override;
+
+protected:
+	// Layout for the widgets, from root to leaves is done is two phases.
+	// First phase [bottom-up]: For size calculations so that each (parent)
+	// container knows how much size its children will take.
+	// Second phase [top-down]: Providing size available for layout and placing
+	// the widgets accordingly.
+
 	/// @brief Layout all the children using layout info and set size.
 	/// @param size_hint Size available for the layout.
 	/// @note `calc_layout_info` must be called before this.
 	virtual void layout_children(Point size_hint) = 0;
-	/// @brief Calculate layout info but do not actually layout anything.
+	/// @brief Calculate layout sizes but do not actually layout anything.
 	/// @return Minimum size needed for the container to prevent overflow.
-	virtual Point calc_layout_info() = 0;
-
-	void set_size(Point new_size) override;
-
-protected:
-	// Generally a layout calculation needed only when a child is
-	// added or removed from the container or layout config is changed.
-	// bool needs_layout_calc = true;
+	virtual auto calc_layout_info() -> Point = 0;
 };
 
 class PaddedBox : public Container
@@ -47,11 +51,11 @@ public:
 	/// @brief Set minimum padding for each direction, if a value is negative
 	/// then the old padding for that direction is preserved.
 	void set_padding(int top, int bottom, int left, int right);
-	void layout_children(Point size_hint) override;
-	Point calc_layout_info() override;
 
 protected:
-	Widget *notify(Event ev) override;
+	void layout_children(Point size_hint) override;
+	auto calc_layout_info() -> Point override;
+	auto notify(Event ev) -> Widget * override;
 	void draw() override;
 	void draw_debug() override;
 
@@ -78,14 +82,14 @@ public:
 	void set_expand_to_fill(bool can_expand) { expand_to_fill = can_expand; }
 	void set_gap(int gap) { item_gap = gap; }
 
-	Widget *add_widget_start(std::shared_ptr<Widget> child);
-	Widget *add_widget_end(std::shared_ptr<Widget> child);
+	auto add_widget_start(std::shared_ptr<Widget> child) -> Widget *;
+	auto add_widget_end(std::shared_ptr<Widget> child) -> Widget *;
 
 	void layout_children(Point avail_size) override;
-	Point calc_layout_info() override;
+	auto calc_layout_info() -> Point override;
 
 protected:
-	Widget *notify(Event ev) override;
+	auto notify(Event ev) -> Widget * override;
 	void draw_debug() override;
 	void draw() override;
 
@@ -98,7 +102,7 @@ private:
 
 	/// @brief Calculate gap size in both components.
 	/// @return Gap size.
-	Point calc_gap_size() const;
+	[[nodiscard]] auto calc_gap_size() const -> Point;
 
 	// Children pushed to start, first element is placed at start.
 	std::vector<Child> start_children;
@@ -138,12 +142,11 @@ public:
 	/// @param column_span Default=1
 	/// @param row_span Default=1
 	/// @return Pointer to the child if added, otherwise nullptr.
-	Widget *add_widget_beside(
+	auto add_widget_beside(
 		std::shared_ptr<Widget> child, const Widget *beside, Direction stick,
 		int column_span = 1, int row_span = 1
-	);
+	) -> Widget *;
 
-	// TODO Return something else other than the child added??
 	/// @brief Add a widget to the grid.
 	/// @param child The widget
 	/// @param column Start column
@@ -151,16 +154,16 @@ public:
 	/// @param column_span Default=1
 	/// @param row_span Default=1
 	/// @return Pointer to the child if added, otherwise nullptr.
-	Widget *add_widget(
+	auto add_widget(
 		std::shared_ptr<Widget> child, int column, int row, int column_span = 1,
 		int row_span = 1
-	);
+	) -> Widget *;
 
 	void layout_children(Point avail_size) override;
-	Point calc_layout_info() override;
+	auto calc_layout_info() -> Point override;
 
 protected:
-	Widget *notify(Event ev) override;
+	auto notify(Event ev) -> Widget * override;
 	void draw_debug() override;
 	void draw() override;
 
@@ -195,11 +198,16 @@ private:
 	int col_gap = 0;
 };
 
-inline void calc_layout_info_if_container(Widget &w)
+/// @brief Does first phase of layout calculation if a container.
+/// @return Minimum size required by widget(even if not container).
+inline auto calc_layout_info_if_container(Widget &w) -> Point
 {
 	auto cont = dynamic_cast<Container *>(&w);
-	if (cont)
-		cont->calc_layout_info();
+	if (cont) {
+		return cont->calc_layout_info();
+	} else {
+		return w.get_min_size();
+	}
 }
 
 } // namespace eggui

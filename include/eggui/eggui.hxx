@@ -9,6 +9,7 @@
 #include "scrollable.hxx"
 
 #include "label.hxx"
+#include "toast.hxx"
 
 #include "input.hxx"
 #include "button.hxx"

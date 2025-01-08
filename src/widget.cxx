@@ -13,8 +13,9 @@ void draw_widget(Widget &w)
 {
 	const auto pen = w.canvas.acquire_pen();
 	w.is_drawing_visible = w.is_visible(pen);
-	if (w.is_drawing_visible)
+	if (w.is_drawing_visible) {
 		w.draw();
+	}
 }
 
 void draw_widget_debug(Widget &w)
@@ -24,13 +25,25 @@ void draw_widget_debug(Widget &w)
 	w.draw_debug();
 }
 
-Widget *notify_widget(Widget &w, Event ev)
+auto notify_widget(Widget &w, Event ev) -> Widget *
 {
-	// Make cursor position relative to the widget and constrain it within
-	// the widget boundary.
+	// Make cursor position relative for the widget and constrain it
+	// within the widget's bounding box.
 	ev.cursor -= w.get_position();
 	ev.cursor = clamp_components(ev.cursor, Point(0, 0), w.get_size());
-	return w.notify(ev);
+
+	auto ret = w.notify(ev);
+
+	// If IsInteractive event is being sent on an [enabled] interactive widget
+	// then, acknowledge the event if the widget has not.
+	if (ret == nullptr && ev.type == EventType::IsInteractive) {
+		auto inter = dynamic_cast<Interactive *>(&w);
+		if (inter != nullptr && !inter->is_disabled()) {
+			return &w;
+		}
+	}
+
+	return ret;
 }
 
 void Widget::set_size(Point new_size)
@@ -50,12 +63,13 @@ void Widget::set_all_sizes(Point size)
 
 void Widget::set_position(Point new_pos) { canvas.set_position(new_pos); }
 
-Point Widget::calc_abs_position() const
+auto Widget::calc_abs_position() const -> Point
 {
 	Point ret = get_position();
 
-	for (auto p = get_parent(); p; p = p->get_parent())
+	for (auto p = get_parent(); p; p = p->get_parent()) {
 		ret += p->get_position();
+	}
 
 	return ret;
 }
@@ -78,10 +92,11 @@ void Widget::draw_debug()
 #endif
 }
 
-bool Interactive::handle_mouse_hover_events(Event ev)
+auto Interactive::handle_mouse_hover_events(Event ev) -> bool
 {
-	if (is_disabled())
+	if (is_disabled()) {
 		return false;
+	}
 
 	switch (ev.type) {
 	case EventType::MouseIn:
@@ -99,10 +114,11 @@ bool Interactive::handle_mouse_hover_events(Event ev)
 	return true;
 }
 
-bool Interactive::handle_mouse_press_events(Event ev)
+auto Interactive::handle_mouse_press_events(Event ev) -> bool
 {
-	if (is_disabled())
+	if (is_disabled()) {
 		return false;
+	}
 
 	switch (ev.type) {
 	case EventType::MousePressed:
@@ -119,14 +135,7 @@ bool Interactive::handle_mouse_press_events(Event ev)
 	return true;
 }
 
-Widget *Interactive::notify(Event ev)
-{
-	if (!is_disabled() && ev.type == EventType::IsInteractive)
-		return this;
-	return nullptr;
-}
-
-bool Widget::is_visible(const Pen &pen) const
+auto Widget::is_visible(const Pen &pen) const -> bool
 {
 	assert(canvas.has_active_pen());
 

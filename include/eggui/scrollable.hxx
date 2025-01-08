@@ -2,7 +2,6 @@
 #define SCROLLABLE_HXX_INCLUDED
 
 #include <utility>
-#include <optional>
 #include <memory>
 #include <functional>
 
@@ -24,13 +23,13 @@ public:
 		on_drag = callback;
 	}
 
-	Point get_center_position() const
+	[[nodiscard]] auto get_center_pos() const -> Point
 	{
 		return get_position() + get_size() / 2;
 	}
 
 protected:
-	Widget *notify(Event ev) override;
+	auto notify(Event ev) -> Widget * override;
 	void draw() override;
 
 private:
@@ -50,19 +49,15 @@ public:
 		on_scroll = callback;
 	}
 
-	/// @brief Scroll to position on scrollbar.
-	/// @param bar_click_pos Position on the bar where the slider should be centered.
-	void scroll_to_position(Point bar_click_pos);
-
 	/// @brief Set scroll fraction and notify the view about it.
 	/// @param frac Scroll fraction in range [0, 1].
 	void set_scroll_fraction(float frac);
-	inline float get_scroll_fraction() const { return scroll_fraction; }
+	[[nodiscard]] inline auto get_scroll_fraction() const -> float { return scroll_fraction; }
 
 	void set_slider_len(int len);
 
 protected:
-	Widget *notify(Event ev) override;
+	auto notify(Event ev) -> Widget * override;
 	void draw() override;
 	void draw_debug() override;
 
@@ -70,30 +65,34 @@ private:
 	std::function<void(float)> on_scroll = [](float) {};
 	ScrollSlider slider;
 	float scroll_fraction = 0.0;
-	Axis scroll_axis;
+	const Axis AXIS{};
 };
 
-class VScrollView : public Container
+class ScrollArea : public Container
 {
 public:
-	VScrollView(int w, int h, std::shared_ptr<Widget> child_);
+	ScrollArea(int w, int h, std::shared_ptr<Widget> child_);
 
-	void layout_children(Point size_hint) override;
-	Point calc_layout_info() override;
+	/// @brief Enable/Disable scrolling per axis.
+	///
+	/// If scrolling is disabled for an axis then, it will adjust its
+	/// size to the child's (minimum) size along that axis.
+	void set_scroll(bool scroll_in_x, bool scroll_in_y);
 
 protected:
-	Widget *notify(Event ev) override;
+	auto notify(Event ev) -> Widget * override;
 	void draw() override;
 	void draw_debug() override;
 
+	void layout_children(Point size_hint) override;
+	auto calc_layout_info() -> Point override;
+
 private:
-	/// @brief Size occupied by the scrollbars for both axes
-	Point calc_bars_size() const;
-
+	// Enable/Disable scrolling along each axis.
+	bool is_xscroll = false, is_yscroll = false;
+	// How much we have scrolled.
+	float xscroll = 0, yscroll = 0;
 	std::shared_ptr<Widget> child = nullptr;
-	std::optional<ScrollBar> scrollbar{};
-
-	static constexpr ScrollBar::Axis AXIS = ScrollBar::Axis::Y;
 };
 } // namespace eggui
 

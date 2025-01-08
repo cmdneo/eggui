@@ -22,7 +22,7 @@ void Button::set_size(Point new_size)
 	label.set_all_sizes(new_size);
 }
 
-Widget *Button::notify(Event ev)
+auto Button::notify(Event ev) -> Widget *
 {
 	if (handle_mouse_hover_events(ev))
 		return this;
@@ -34,7 +34,7 @@ Widget *Button::notify(Event ev)
 		return this;
 	}
 
-	return Interactive::notify(ev);
+	return nullptr;
 };
 
 void Button::draw()

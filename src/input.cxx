@@ -5,7 +5,7 @@
 #include "input.hxx"
 #include "theme.hxx"
 
-#include "raylib/raylib.h"
+#include "raylib.h"
 
 using namespace eggui;
 
@@ -23,7 +23,7 @@ void TextInput::set_size(Point size)
 	Widget::set_size(size);
 }
 
-Widget *TextInput::notify(Event ev)
+auto TextInput::notify(Event ev) -> Widget *
 {
 	auto blink = [this](int, float progress) {
 		// Use 1 - (2x - 1)^2 for the blink animation of the cursor.
@@ -34,6 +34,7 @@ Widget *TextInput::notify(Event ev)
 	};
 
 	// TODO Handle more possible keypresses and text select.
+	// TODO Complete this test implementation.
 	switch (ev.type) {
 	case EventType::FocusGained:
 		ev.window.add_animation(
@@ -63,14 +64,15 @@ Widget *TextInput::notify(Event ev)
 		return this;
 
 	case EventType::KeyPressed:
-		if (ev.keycode == KEY_DELETE)
-			text.delete_after_cursor();
-		else if (ev.keycode == KEY_BACKSPACE)
-			text.delete_before_cursor();
-		else if (ev.keycode == KEY_LEFT)
+		if (ev.keycode == KEY_DELETE) {
+			text.delete_after_cursor(1);
+		} else if (ev.keycode == KEY_BACKSPACE) {
+			text.delete_before_cursor(1);
+		} else if (ev.keycode == KEY_LEFT) {
 			text.move_cursor(-1);
-		else if (ev.keycode == KEY_RIGHT)
+		} else if (ev.keycode == KEY_RIGHT) {
 			text.move_cursor(1);
+		}
 
 		return this;
 
@@ -78,7 +80,7 @@ Widget *TextInput::notify(Event ev)
 		break;
 	}
 
-	return Interactive::notify(ev);
+	return nullptr;
 }
 
 void TextInput::draw()

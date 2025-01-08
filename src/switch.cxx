@@ -7,7 +7,7 @@
 
 using namespace eggui;
 
-inline int map_range(int min, int max, float frac)
+inline auto map_range(int min, int max, float frac) -> int
 {
 	return min + frac * (max - min);
 }
@@ -30,19 +30,21 @@ void Switch::set_state(bool new_state, Window &window)
 	);
 }
 
-Widget *Switch::notify(Event ev)
+auto Switch::notify(Event ev) -> Widget *
 {
-	if (handle_mouse_hover_events(ev))
+	if (handle_mouse_hover_events(ev)) {
 		return this;
-	if (handle_mouse_press_events(ev))
+	}
+	if (handle_mouse_press_events(ev)) {
 		return this;
+	}
 
 	if (ev.type == EventType::MouseClick) {
 		set_state(!state, ev.window);
 		return this;
 	}
 
-	return Interactive::notify(ev);
+	return nullptr;
 }
 
 void Switch::draw()
@@ -57,13 +59,15 @@ void Switch::draw()
 	// Draw the sliding circle along with the ON switch color attached
 	// before it for a sliding effect.
 	draw_rounded_rect(Point(), get_size(), 1, SWITCH_OFF_BG);
-	if (slider_pos > 0)
+	if (slider_pos > 0) {
 		draw_rounded_rect(
 			Point(), Point(pos.x + xoffset, get_size().y), 1, SWITCH_ON_BG
 		);
+	}
 
 	draw_cirlce(pos, rad, SWITCH_SLIDER_COLOR);
 
-	if (is_hovering)
+	if (is_hovering) {
 		draw_rounded_rect(Point(), get_size(), 1, SWITCH_HOVER_TINT);
+	}
 }

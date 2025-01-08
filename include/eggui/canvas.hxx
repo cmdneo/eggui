@@ -36,8 +36,7 @@ public:
 
 	// If copied then make sure that it does reference any active pens.
 	Canvas(const Canvas &c)
-		: active_pen_cnt(0)
-		, size(c.size)
+		: size(c.size)
 		, position(c.position)
 		, region_start(c.region_start)
 		, region_size(c.region_size)
@@ -59,10 +58,13 @@ public:
 	/// @param enable_clipping Enables draw region clipping.
 	/// @return Pen
 	/// @note Only one pen can be active per canvas.
-	Pen acquire_pen(bool enable_clipping = true);
+	[[nodiscard]] auto acquire_pen(bool enable_clipping = true) -> Pen;
 	/// @brief Check if a pen is active for the canvas.
 	/// @return boolean
-	bool has_active_pen() const { return active_pen_cnt != 0; }
+	[[nodiscard]] auto has_active_pen() const -> bool
+	{
+		return active_pen_cnt != 0;
+	}
 
 	/// @brief Set region to which drawing should be restricted to.
 	/// @param rect_start Region rectangle start.
@@ -79,13 +81,13 @@ public:
 
 	/// @brief Get region of the canvas which will be drawn on the screen.
 	/// @return Pair represents a rectangle as position and size.
-	std::pair<Point, Point> get_draw_region()
+	auto get_draw_region() -> std::pair<Point, Point>
 	{
 		return {region_start, region_size};
 	}
 
-	inline Point get_size() const { return size; }
-	inline Point get_position() const { return position; }
+	[[nodiscard]] auto get_size() const -> Point { return size; }
+	[[nodiscard]] auto get_position() const -> Point { return position; }
 
 private:
 	// There can be only one active pen per canvas.
@@ -124,7 +126,7 @@ public:
 
 	/// @brief Gets clip region in which the pen can actually draw.
 	/// @return Rectangle: relative(to canvas) position and size.
-	std::pair<Point, Point> get_clip_region() const
+	[[nodiscard]] auto get_clip_region() const -> std::pair<Point, Point>
 	{
 		return {clip_rect_pos, clip_rect_size};
 	}

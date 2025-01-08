@@ -23,7 +23,7 @@ constexpr int FONT_SIZE_COUNT = 5;
 /// Font size in pixels for FontSize variants, indexed by FontSize.
 constexpr int FONT_PX_SIZES[] = {14, 18, 24, 32, 42};
 
-inline int font_size_to_pixels(FontSize fsize)
+inline auto font_size_to_pixels(FontSize fsize) -> int
 {
 	return FONT_PX_SIZES[static_cast<int>(fsize)];
 }
@@ -66,11 +66,11 @@ void push_translation(Point pos);
 void pop_translation();
 /// @brief Calculates total translation till now.
 /// @return Accumulated translation position.
-Point get_total_translation();
+auto get_total_translation() -> Point;
 
 /// @brief Get window size in pixels
 /// @return Point: width and height
-Point get_window_size();
+auto get_window_size() -> Point;
 
 // Mouse cursor shape TODO
 enum CursorShape {
@@ -100,13 +100,14 @@ void draw_line(Point start, Point end, RGBA color);
 void draw_rect(Point position, Point size, RGBA color);
 void draw_rect_lines(Point position, Point size, RGBA color);
 void draw_rounded_rect(Point position, Point size, float round, RGBA color);
+void draw_rounded_rect_lines(Point position, Point size, float round, float thickness, RGBA color);
 void draw_cirlce(Point center, float radius, RGBA color);
 void draw_cirlce_sector(Point position, float radius, float start_angle, float end_angle, RGBA color);
 void draw_ring(Point center, float inner_rad, float outer_rad, RGBA color);
 void draw_triangle(Point v1, Point v2, Point v3, RGBA color);
 void draw_text(Point position, RGBA color, const char *text, FontSize font_size, int spacing = 0);
 
-Point tell_text_size(const char *text, FontSize font_size);
+auto tell_text_size(const char *text, FontSize font_size) -> Point;
 } // namespace eggui
 
 #endif

@@ -21,10 +21,11 @@ void swap_remove_if(
 	typename T::size_type i = 0;
 
 	while (i != container.size()) {
-		if (unary_pred(container[i]))
+		if (unary_pred(container[i])) {
 			swap_remove(container, i);
-		else
+		} else {
 			i++;
+		}
 	}
 }
 } // namespace eggui

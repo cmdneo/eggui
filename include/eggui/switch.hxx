@@ -24,12 +24,12 @@ public:
 	void set_state(bool new_state, Window &window);
 	/// @brief Get current ON/OFF state of the switch
 	/// @return Switch state.
-	bool get_state() const { return state; }
+	[[nodiscard]] auto get_state() const -> bool { return state; }
 
 	void set_on_toggle(ToggleCallback callback) { on_toggle = callback; }
 
 protected:
-	Widget *notify(Event ev) override;
+	auto notify(Event ev) -> Widget * override;
 	void draw() override;
 
 private:

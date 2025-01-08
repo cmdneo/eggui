@@ -12,9 +12,9 @@
 
 using namespace eggui;
 
-inline int get_sign(int s) { return s != 0 ? s / std::abs(s) : 0; }
+inline auto get_sign(int s) -> int { return s != 0 ? s / std::abs(s) : 0; }
 
-static float get_char_width(char c, FontSize size)
+static auto get_char_width(char c, FontSize size) -> float
 {
 	const char s[] = {c, 0};
 	return tell_text_size(s, size).x;
@@ -47,9 +47,7 @@ void EditableTextBox::set_text(std::string txt)
 	cursor_xpos = 0;
 }
 
-std::string_view EditableTextBox::get_text() const { return text; }
-
-int EditableTextBox::move_cursor(int delta)
+auto EditableTextBox::move_cursor(int delta) -> int
 {
 	int new_pos =
 		std::clamp(cursor_at + delta, 0, static_cast<int>(text.size()));
@@ -76,36 +74,43 @@ void EditableTextBox::insert_before_cursor(char c)
 	cursor_at++;
 }
 
-void EditableTextBox::delete_before_cursor()
+void EditableTextBox::delete_before_cursor(int count)
 {
-	if (cursor_at == 0)
-		return;
+	for (int i = 0; i < count; ++i) {
+		if (cursor_at == 0) {
+			return;
+		}
 
-	char c = text[cursor_at - 1];
-	cursor_xpos -= get_char_width(c, font_size);
+		char c = text[cursor_at - 1];
+		cursor_xpos -= get_char_width(c, font_size);
 
-	text.erase(text.begin() + cursor_at - 1);
-	cursor_at--;
+		text.erase(text.begin() + cursor_at - 1);
+		cursor_at--;
+	}
 }
 
-void EditableTextBox::delete_after_cursor()
+void EditableTextBox::delete_after_cursor(int count)
 {
-	if (cursor_at == static_cast<int>(text.size()))
-		return;
+	for (int i = 0; i < count; ++i) {
+		if (cursor_at == static_cast<int>(text.size())) {
+			return;
+		}
 
-	text.erase(text.begin() + cursor_at);
+		text.erase(text.begin() + cursor_at);
+	}
 }
 
-Widget *EditableTextBox::notify(Event ev)
+auto EditableTextBox::notify(Event ev) -> Widget *
 {
-	if (ev.type != EventType::MousePressed)
-		return Interactive::notify(ev);
+	if (ev.type != EventType::MousePressed) {
+		return nullptr;
+	}
 
 	float xpos = 0;
 	for (unsigned i = 0; i < text.size(); ++i) {
 		float width = get_char_width(text[i], font_size);
 
-		// TODO Add support correct cursor position on scrolled text.
+		// TODO (amiy): Optimize cursor jumping and scrolling.
 		// Move the cursor to the left of char if clicked in left-half, and
 		// move the cursor to the right of the char if pressed in right-half.
 		if (xpos > ev.cursor.x) {
@@ -127,18 +132,13 @@ Widget *EditableTextBox::notify(Event ev)
 
 void EditableTextBox::draw()
 {
-	// constexpr int DRAW_BUF_SIZE = 255;
-	// char draw_buf[DRAW_BUF_SIZE + 1]{};
-
-	// Scroll the text to the cursor position on overflow.
-	float x_offset = std::min(0.f, get_size().x - cursor_xpos - CURSOR_WIDTH);
-	draw_text(Point(x_offset, 0), TEXT_COLOR, text.c_str(), font_size);
+	draw_text(Point(0, 0), TEXT_COLOR, text.c_str(), font_size);
 
 	// Draw the cursor
 	auto ccol = CURSOR_COLOR;
 	ccol.a = cursor_opacity;
 	Point size(CURSOR_WIDTH, font_size_to_pixels(font_size));
-	draw_rect(Point(x_offset + cursor_xpos, 0), size, ccol);
+	draw_rect(Point(cursor_xpos, 0), size, ccol);
 }
 
 void EditableTextBox::calc_cursor_offset()
@@ -146,8 +146,9 @@ void EditableTextBox::calc_cursor_offset()
 	assert(cursor_at >= 0 && static_cast<unsigned>(cursor_at) <= text.size());
 
 	float pos = 0;
-	for (int i = 0; i < cursor_at; ++i)
+	for (int i = 0; i < cursor_at; ++i) {
 		pos += get_char_width(text[i], font_size);
+	}
 
 	cursor_xpos = pos;
 }

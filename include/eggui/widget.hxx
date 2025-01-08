@@ -28,14 +28,14 @@ void draw_widget_debug(Widget &w);
 /// @param w The widget to be notified.
 /// @param ev Event information.
 /// @return The widget which responded to the event, nullptr if ignored.
-Widget *notify_widget(Widget &w, Event ev);
+auto notify_widget(Widget &w, Event ev) -> Widget *;
 
 /// @brief Widget abstract base class, all widget inherit from this.
 class Widget
 {
 	friend void draw_widget(Widget &w);
 	friend void draw_widget_debug(Widget &w);
-	friend Widget *notify_widget(Widget &, Event ev);
+	friend auto notify_widget(Widget &, Event ev) -> Widget *;
 
 public:
 	Widget(int w, int h)
@@ -55,19 +55,22 @@ public:
 	/// @brief Update size re-layout its children(if any) as per its new size.
 	/// @param new_size New size
 	virtual void set_size(Point new_size);
-	inline Point get_size() const { return canvas.get_size(); }
+	[[nodiscard]] auto get_size() const -> Point { return canvas.get_size(); }
 
-	inline void set_min_size(Point size) { min_box_size = size; }
-	inline Point get_min_size() const { return min_box_size; }
+	void set_min_size(Point size) { min_box_size = size; }
+	[[nodiscard]] auto get_min_size() const -> Point { return min_box_size; }
 
-	inline void set_max_size(Point size) { max_box_size = size; }
-	inline Point get_max_size() const { return max_box_size; }
+	void set_max_size(Point size) { max_box_size = size; }
+	[[nodiscard]] auto get_max_size() const -> Point { return max_box_size; }
 
-	// TODO Use preferred size where applicable instead of using minimum size.
+	// TODO(amiy): Use preferred size where applicable instead of using minimum size.
 	/// @brief Set preferred size, by default preferred size is just min_size.
 	/// @param size Preferred size.
 	virtual void set_preffered_size(Point size) { set_min_size(size); }
-	virtual Point get_preffered_size() const { return get_min_size(); }
+	[[nodiscard]] virtual auto get_preffered_size() const -> Point
+	{
+		return get_min_size();
+	}
 
 	/// @brief Set min, max and current size.
 	/// @param size New size
@@ -75,47 +78,50 @@ public:
 
 	/// @brief Set parent of the widget.
 	/// @param w Parent widget, it is generally a container.
-	inline void set_parent(Widget *w) { parent = w; }
-	inline Widget *get_parent() const { return parent; }
+	void set_parent(Widget *w) { parent = w; }
+	[[nodiscard]] auto get_parent() const -> Widget * { return parent; }
 
 	/// @brief Move the widget along with its children
 	/// @param new_pos New position
 	virtual void set_position(Point new_pos);
-	inline Point get_position() const { return canvas.get_position(); }
+	[[nodiscard]] auto get_position() const -> Point
+	{
+		return canvas.get_position();
+	}
 
 	void set_xpos(int x) { set_position(Point(x, get_position().y)); }
 	void set_ypos(int y) { set_position(Point(get_position().x, y)); }
 
 	void set_vert_align(Alignment alignment) { v_align = alignment; }
-	Alignment get_vert_align() const { return v_align; }
+	[[nodiscard]] auto get_vert_align() const -> Alignment { return v_align; }
 
 	void set_horiz_align(Alignment alignment) { h_align = alignment; }
-	Alignment get_horiz_align() const { return h_align; }
+	[[nodiscard]] auto get_horiz_align() const -> Alignment { return h_align; }
 
 	void set_fill(Fill fill_mode) { fill = fill_mode; }
-	Fill get_fill() const { return fill; }
+	[[nodiscard]] auto get_fill() const -> Fill { return fill; }
 
 	/// @brief Checks if the `point` is inside the widget.
 	/// @param point Cursor position relative to the widget's parent.
 	/// @return Boolean.
-	virtual bool collides_with_point(Point point)
+	virtual auto collides_with_point(Point point) -> bool
 	{
 		return point.is_in_box(get_position(), get_size());
 	}
 
 	/// @brief Calculates the absolute position of the widget on the screen.
 	/// @return Point
-	Point calc_abs_position() const;
+	[[nodiscard]] auto calc_abs_position() const -> Point;
 
 	/// @brief Checks if the widget is visible on the screen if drawn using
 	///        the provided pen.
 	/// @param pen Pen
 	/// @return true if visible, false otherwise.
-	bool is_visible(const Pen &pen) const;
+	[[nodiscard]] auto is_visible(const Pen &pen) const -> bool;
 
 protected:
 	/// @brief Does the event handling, called by `notify_widget`.
-	virtual Widget *notify(Event) { return nullptr; }
+	virtual auto notify(Event) -> Widget * { return nullptr; }
 	/// @brief Draws stuff, called by `draw_widget`.
 	virtual void draw() = 0;
 	/// @brief Draws debug boxes, called by `draw_widget_debug`.
@@ -152,24 +158,18 @@ public:
 
 	void disable() { is_disabled_ = true; }
 	void enable() { is_disabled_ = false; }
-	bool is_disabled() const { return is_disabled_; }
+	[[nodiscard]] auto is_disabled() const -> bool { return is_disabled_; }
 
 protected:
-	/// @brief Call and return its value for all the events that are ignored
-	///        by the subclass method which overrides this.
-	/// @param ev Event
-	/// @return The widget which handeled the event.
-	Widget *notify(Event ev) override;
-
 	/// @brief Manage is-hovering state for an enabled interactive widget.
 	/// @param ev Event
 	/// @return true if any of the events related to it were handled.
-	bool handle_mouse_hover_events(Event ev);
+	auto handle_mouse_hover_events(Event ev) -> bool;
 
 	/// @brief Manage is-pressed state for an enabled interactive widget.
 	/// @param ev Event
 	/// @return true if any of the events related to it were handled.
-	bool handle_mouse_press_events(Event ev);
+	auto handle_mouse_press_events(Event ev) -> bool;
 
 	// State information for interactive widgets
 	bool is_hovering = false;

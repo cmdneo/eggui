@@ -14,28 +14,28 @@ struct Point {
 	{
 	}
 
-	Point get_swapped() { return Point(y, x); }
+	auto get_swapped() -> Point { return {y, x}; }
 
-	int min_coord() const { return x < y ? x : y; }
+	[[nodiscard]] auto min_coord() const -> int { return x < y ? x : y; }
 
-	Point &operator+=(Point other)
+	auto operator+=(Point other) -> Point &
 	{
 		x += other.x;
 		y += other.y;
 		return *this;
 	}
 
-	Point &operator-=(Point other)
+	auto operator-=(Point other) -> Point &
 	{
 		x -= other.x;
 		y -= other.y;
 		return *this;
 	}
 
-	int &operator[](int i) { return i == 0 ? x : y; }
-	const int &operator[](int i) const { return i == 0 ? x : y; }
+	auto operator[](int i) -> int & { return i == 0 ? x : y; }
+	auto operator[](int i) const -> const int & { return i == 0 ? x : y; }
 
-	bool is_in_box(Point box_pos, Point box_size) const
+	[[nodiscard]] auto is_in_box(Point box_pos, Point box_size) const -> bool
 	{
 		Point start = box_pos;
 		Point end = start;
@@ -48,40 +48,50 @@ struct Point {
 	int y = 0;
 };
 
-inline Point operator+(Point l, Point r) { return (l += r); }
-inline Point operator-(Point l, Point r) { return (l -= r); }
+inline auto operator+(Point l, Point r) -> Point { return (l += r); }
+inline auto operator-(Point l, Point r) -> Point { return (l -= r); }
 
-inline Point operator+(Point p) { return p; }
-inline Point operator-(Point p) { return Point(-p.x, -p.y); }
+inline auto operator+(Point p) -> Point { return p; }
+inline auto operator-(Point p) -> Point { return {-p.x, -p.y}; }
 
-inline Point operator*(Point p, double n) { return Point(p.x * n, p.y * n); }
-inline Point operator*(double n, Point p) { return p * n; }
-
-inline Point operator/(Point p, double n) { return Point(p.x / n, p.y / n); }
-
-inline bool operator==(Point p, Point q) { return p.x == q.x && p.y == q.y; }
-
-inline Point mul_components(Point l, Point r)
+inline auto operator*(Point p, double n) -> Point
 {
-	return Point(l.x * r.x, l.y * r.y);
+	return {static_cast<int>(p.x * n), static_cast<int>(p.y * n)};
+}
+inline auto operator*(double n, Point p) -> Point { return p * n; }
+
+inline auto operator/(Point p, double n) -> Point
+{
+	return {static_cast<int>(p.x / n), static_cast<int>(p.y / n)};
 }
 
-inline Point max_components(Point a, Point b)
+inline auto operator==(Point p, Point q) -> bool
 {
-	return Point(std::max(a.x, b.x), std::max(a.y, b.y));
+	return p.x == q.x && p.y == q.y;
 }
 
-inline Point min_components(Point a, Point b)
+inline auto mul_components(Point l, Point r) -> Point
 {
-	return Point(std::min(a.x, b.x), std::min(a.y, b.y));
+	return {l.x * r.x, l.y * r.y};
 }
 
-inline Point clamp_components(Point pt, Point min_pt, Point max_pt)
+inline auto max_components(Point a, Point b) -> Point
+{
+	return {std::max(a.x, b.x), std::max(a.y, b.y)};
+}
+
+inline auto min_components(Point a, Point b) -> Point
+{
+	return {std::min(a.x, b.x), std::min(a.y, b.y)};
+}
+
+inline auto clamp_components(Point pt, Point min_pt, Point max_pt) -> Point
 {
 	return min_components(max_components(pt, min_pt), max_pt);
 }
 
-inline bool check_box_collision(Point p, Point psize, Point q, Point qsize)
+inline auto check_box_collision(Point p, Point psize, Point q, Point qsize)
+	-> bool
 {
 	// The end point(pos + size) is not included in the rectange formed.
 	return !(
@@ -90,8 +100,9 @@ inline bool check_box_collision(Point p, Point psize, Point q, Point qsize)
 	);
 }
 
-inline bool
+inline auto
 is_box_inside_box(Point outer, Point outer_size, Point inner, Point inner_size)
+	-> bool
 {
 	auto outer_end = outer + outer_size;
 	auto inner_end = inner + inner_size;

@@ -1,45 +1,77 @@
-#include <cassert>
+#include <cctype>
+#include <cstdio>
+#include <array>
 #include <memory>
-#include <vector>
-#include <functional>
+#include <string>
 #include <utility>
-#include <iostream>
 #include <format>
 
-#define println(...) (std::cout << std::format(__VA_ARGS__) << '\n')
-
-#include "raylib/raylib.h"
-
-#include "event.hxx"
-#include "scrollable.hxx"
 #include "eggui.hxx"
 
-using namespace eggui;
+using std::make_shared;
 
-using std::make_unique;
+using eggui::Alignment;
+using eggui::Button;
+using eggui::Direction;
+using eggui::Label;
+using eggui::LinearBox;
+using eggui::Orientation;
+using eggui::PaddedBox;
+using eggui::RGBA;
+using eggui::ScrollArea;
+using eggui::Switch;
+using eggui::Toast;
+using eggui::Window;
 
-int main()
+constexpr std::array<const char *, 9> names = {
+	"ABC", "DEF", "GHI", "JKL", "MNO", "PQT", "RST", "UVW", "WXY",
+};
+
+auto main() -> int
 {
+	auto linear = make_shared<LinearBox>(Orientation::Vertical);
+	linear->set_gap(5);
 
-	auto grid = make_unique<Grid>();
-	grid->set_row_gap(10);
-	grid->set_col_gap(10);
-	grid->add_widget(make_unique<Button>(400, 200, "DBL-DECKER"), 0, 0, 1, 2);
-	auto b = grid->add_widget(make_unique<Button>(200, 70, "SIN-U"), 2, 0);
+	int num = 0;
+	auto add_btn = make_shared<Button>(180, 60, "Add +1");
+	add_btn->set_on_click([&num](Window &w, Button &) {
+		auto msg = std::format("Count: {}", ++num);
+		Toast(180, 40, 2, msg, Direction::Bottom).show_toast(w);
+	});
 
-	grid->add_widget(make_unique<Button>(200, 70, "SIN-L"), 2, 2);
+	auto sub_btn = make_shared<Button>(180, 60, "Add -1");
+	sub_btn->set_on_click([&num](Window &w, Button &) {
+		auto msg = std::format("Count: {}", --num);
+		Toast(180, 40, 2, msg, Direction::Bottom).show_toast(w);
+	});
 
-	auto sbar = make_unique<ScrollBar>(20, 400, ScrollBar::Axis::Y);
-	sbar->set_on_scroll([](float) {});
-	grid->add_widget_beside(std::move(sbar), b, Direction::Left, 1, 4);
+	auto button_box = make_shared<LinearBox>(Orientation::Horizontal);
+	button_box->set_gap(20);
+	button_box->add_widget_start(add_btn);
+	button_box->add_widget_end(sub_btn);
+	linear->add_widget_start(button_box);
 
-	grid->add_widget_beside(
-		make_unique<Button>(400, 100, "XPANDER"), b, Direction::BottomRight
-	);
+	for (auto name : names) {
+		auto label = make_shared<Label>(140, 40, name, RGBA(255, 255, 255));
+		label->set_text_align(Alignment::Center, Alignment::Center);
+		auto toggle = make_shared<Switch>(40, 22);
+		toggle->set_on_toggle([name](auto &, auto &, bool s) {
+			printf("%3s : %s\n", (s ? "ON" : "OFF"), name);
+		});
 
-	auto window = Window(std::move(grid));
+		auto combo = make_shared<LinearBox>(Orientation::Horizontal);
+		combo->add_widget_start(label);
+		combo->add_widget_end(toggle);
+		linear->add_widget_start(combo);
+	}
+
+	auto box = make_shared<PaddedBox>(std::move(linear));
+	box->set_padding(10, 10, 10, 10);
+	auto scroller = make_shared<ScrollArea>(200, 400, std::move(box));
+	scroller->set_scroll(false, true);
+
+	auto window = Window(std::move(scroller));
 	window.set_title("Event demo...!");
-
 	window.main_loop();
 
 	return 0;

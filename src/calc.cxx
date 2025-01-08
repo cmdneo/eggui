@@ -7,9 +7,9 @@
 
 namespace eggui
 {
-Point calc_align_offset(
+auto calc_align_offset(
 	Point child_size, Point cont_size, Alignment halign, Alignment valign
-)
+) -> Point
 {
 	auto align_pos = [](int outer, int inner, Alignment align) -> int {
 		switch (align) {
@@ -30,9 +30,9 @@ Point calc_align_offset(
 	);
 }
 
-Point calc_stretched_size(
+auto calc_stretched_size(
 	Point min_size, Point max_size, Point avail_size, Fill fill
-)
+) -> Point
 {
 	max_size = min_components(avail_size, max_size);
 
@@ -51,9 +51,9 @@ Point calc_stretched_size(
 	return Point(0, 0);
 }
 
-int calc_box_offsets(
+auto calc_box_offsets(
 	const std::vector<int> &sizes, int gap, std::vector<int> &result
-)
+) -> int
 {
 	result.resize(sizes.size());
 
@@ -93,7 +93,6 @@ void calc_expanded_size(
 	int unused_size = usable_size;
 	for (unsigned i = 0; i < min_sizes.size(); ++i) {
 		int extra = max_sizes[i] - min_sizes[i];
-		double actual = min_sizes[i] + increment * extra;
 		result[i] = min_sizes[i] + increment * extra;
 		unused_size -= result[i];
 	}
@@ -106,7 +105,7 @@ void calc_expanded_size(
 		result[i]++;
 }
 
-int calc_length_with_gaps(const std::vector<int> &lengths, int gap)
+auto calc_length_with_gaps(const std::vector<int> &lengths, int gap) -> int
 {
 	int sum = 0;
 	for (auto v : lengths)

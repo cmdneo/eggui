@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <ranges>
 
-#include "raylib/raylib.h"
+#include "raylib.h"
 
 #include "graphics.hxx"
 #include "window.hxx"
@@ -12,23 +12,28 @@
 
 using namespace eggui;
 
-inline Point vec2_to_point(Vector2 v) { return Point(v.x, v.y); };
+inline auto vec2_to_point(Vector2 v) -> Point { return Point(v.x, v.y); };
 
-inline Point get_mouse_pos() { return vec2_to_point(GetMousePosition()); }
-
-inline Point widget_parent_pos(Widget &w)
+inline auto get_mouse_pos() -> Point
 {
-	if (auto p = w.get_parent())
+	return vec2_to_point(GetMousePosition());
+}
+
+inline auto widget_parent_pos(Widget &w) -> Point
+{
+	if (auto p = w.get_parent()) {
 		return p->calc_abs_position();
-	else
+	} else {
 		return Point(0, 0);
+	}
 };
 
 void Window::set_title(std::string title_str)
 {
 	title = std::move(title_str);
-	if (is_running)
+	if (is_running) {
 		SetWindowTitle(title.c_str());
+	}
 }
 
 void Window::main_loop(int width_hint, int height_hint)
@@ -45,8 +50,9 @@ void Window::main_loop(int width_hint, int height_hint)
 
 	// This is not really needed since we also check for frame timing manually,
 	// but just in case the default FPS is too low and it sleeps for too long.
-	if (!IsWindowState(FLAG_VSYNC_HINT))
+	if (!IsWindowState(FLAG_VSYNC_HINT)) {
 		SetTargetFPS(TICKS_PER_SECOND);
+	}
 
 	set_resize_limits();
 
@@ -102,7 +108,12 @@ void Window::add_overlay(std::shared_ptr<Widget> w, int z_index)
 	// Insert so that descending order is maintained first according to
 	// z_index and then according to time added.
 	auto at = std::ranges::lower_bound(
-		overlays, Overlay{.z_index = z_index},
+		overlays,
+		Overlay{
+			.widget = nullptr,
+			.z_index = z_index,
+			.removed = false,
+		},
 		[](const Overlay &a, const Overlay &b) { return a.z_index > b.z_index; }
 	);
 
@@ -131,11 +142,13 @@ void Window::request_focus(Interactive *w, bool keep_pinned)
 	keep_focus_pinned = keep_pinned;
 
 	// Do not change anything if already focused.
-	if (w == focused_on)
+	if (w == focused_on) {
 		return;
+	}
 
-	if (focused_on)
+	if (focused_on) {
 		notify_n_ack(focused_on, EventType::FocusLost);
+	}
 
 	focused_on = w;
 	notify_n_ack(focused_on, EventType::FocusGained);
@@ -204,8 +217,9 @@ void Window::draw()
 	clear_background();
 
 	draw_widget(*root_widget);
-	if (debug_borders_enabled)
+	if (debug_borders_enabled) {
 		draw_widget_debug(*root_widget);
+	}
 
 	// Overlays are drawn where they would appear normally inside of their
 	// parent widget but are placed on top of every other non-overlay widget.
@@ -215,8 +229,9 @@ void Window::draw()
 		push_translation(widget_parent_pos(*ov.widget));
 
 		draw_widget(*ov.widget);
-		if (debug_borders_enabled)
+		if (debug_borders_enabled) {
 			draw_widget_debug(*ov.widget);
+		}
 
 		pop_translation();
 	}
@@ -232,8 +247,9 @@ void Window::layout(Point size)
 
 void Window::set_resize_limits()
 {
-	if (!IsWindowReady())
+	if (!IsWindowReady()) {
 		return;
+	}
 
 	const Point win_min(1, 1);
 	const Point win_max(
@@ -262,8 +278,9 @@ void Window::handle_mouse_events()
 	for (auto &ov : overlays) {
 		auto pos = ov.widget->calc_abs_position();
 		auto size = ov.widget->get_size();
-		if (!get_mouse_pos().is_in_box(pos, size))
+		if (!get_mouse_pos().is_in_box(pos, size)) {
 			continue;
+		}
 
 		send_scroll_to(ov.widget.get());
 		hovered = notify_n_ack(ov.widget.get(), EventType::IsInteractive);
@@ -279,15 +296,17 @@ void Window::handle_mouse_events()
 	// *** Handle mouse button press/release and drag ***
 	if (!mouse_down_over) {
 		// Some widget responds to the mouse press.
-		if (hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+		if (hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 			mouse_down_over = notify_n_ack(hovered, EventType::MousePressed);
+		}
 	}
 	// If mouse released while it was down over some widget.
 	else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
 		// Register a click only if the mouse button is released while
 		// hovering over the same widget it was pressed upon.
-		if (mouse_down_over == hovered)
+		if (mouse_down_over == hovered) {
 			notify_n_ack(mouse_down_over, EventType::MouseClick);
+		}
 
 		notify_n_ack(mouse_down_over, EventType::MouseReleased);
 		mouse_down_over = nullptr;
@@ -299,8 +318,9 @@ void Window::handle_mouse_events()
 		hovered = mouse_down_over;
 		// Mouse moved while a mouse button is pressed over the widget.
 		auto delta = vec2_to_point(GetMouseDelta());
-		if (delta.x != 0 || delta.y != 0)
+		if (delta.x != 0 || delta.y != 0) {
 			notify_n_ack(mouse_down_over, EventType::MouseDrag, delta);
+		}
 	}
 
 	// If some widget had acquired focus earlier but then the mouse button is
@@ -320,8 +340,9 @@ void Window::handle_mouse_events()
 		hovering_over = nullptr;
 	}
 
-	if (!hovered)
+	if (!hovered) {
 		return;
+	}
 
 	// If we are still hovering over the same widget then notify it about
 	// where the mouse is hovering over it along with its delta. Otherwise,
@@ -338,14 +359,16 @@ void Window::handle_mouse_events()
 void Window::send_scroll_to(Widget *w)
 {
 	auto scroll = vec2_to_point(GetMouseWheelMoveV());
-	if (scroll.x != 0 || scroll.y != 0)
+	if (scroll.x != 0 || scroll.y != 0) {
 		notify_n_ack(w, EventType::Scroll, scroll);
+	}
 }
 
 void Window::handle_keyboard_events()
 {
-	if (!focused_on)
+	if (!focused_on) {
 		return;
+	}
 
 	// TODO Cleanup this keyboard testing stuff
 	int charc = GetCharPressed();
@@ -369,8 +392,9 @@ void Window::play_animations()
 
 	while (animation_lag >= UPDATE_DELTA_TIME) {
 		for (auto &a : animations) {
-			if (!a.second.has_ended())
+			if (!a.second.has_ended()) {
 				draw_cnt = a.second.update() ? 1 : draw_cnt;
+			}
 		}
 
 		animation_lag -= UPDATE_DELTA_TIME;
@@ -381,7 +405,7 @@ void Window::play_animations()
 	});
 }
 
-Widget *Window::notify_n_ack(Widget *w, EventType type, Point extra)
+auto Window::notify_n_ack(Widget *w, EventType type, Point extra) -> Widget *
 {
 	assert(w);
 
@@ -394,4 +418,7 @@ Widget *Window::notify_n_ack(Widget *w, EventType type, Point extra)
 	return ret;
 }
 
-double Window::get_update_dt() const { return GetTime() - last_update_time; }
+auto Window::get_update_dt() const -> double
+{
+	return GetTime() - last_update_time;
+}
